@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Surfaces */
+  --color-bg: #0A0E12;
+  --color-surface: #10151B;
+  --color-surface2: #161C24;
+  --color-surface3: #1D2530;
+  --color-border: #232D37;
+
+  /* Text */
+  --color-hi: #E8ECEF;
+  --color-lo: #9AA5B1;
+  --color-faint: #5B6572;
+
+  /* Gold / accent */
+  --color-gold: #E3A542;
+  --color-gold-soft: #2A2213;
+  --color-gold-dim: #8C6A34;
+
+  /* Teal / positive */
+  --color-teal: #2FD6C4;
+  --color-teal-soft: #12211F;
+  --color-teal-dim: #1F5850;
+
+  /* Danger */
+  --color-danger: #F0555B;
+  --color-danger-soft: #2A1518;
+
+  --color-blue: #60A5FA;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #232D37 transparent;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #232D37; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+html { color-scheme: dark; }
+body { background-color: var(--color-bg); }
+
+::selection {
+  background: var(--color-gold-soft);
+  color: var(--color-gold);
+}
+
+/* Consistent focus ring across the app, gold-tinted rather than the browser default blue */
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+}
+
+/* Shared form input style — used by the dynamic form builder / modal forms
+   (Services, TechnicianRequest, etc.) that reference className="input" */
+.input {
+  width: 100%;
+  background: var(--color-surface2);
+  border: 1px solid var(--color-surface3);
+  border-radius: 2px;
+  padding: 0.55rem 0.75rem;
+  font-size: 13px;
+  color: var(--color-hi);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.input::placeholder { color: var(--color-faint); }
+.input:hover { border-color: #2B3542; }
+.input:focus {
+  border-color: var(--color-gold-dim);
+  box-shadow: 0 0 0 3px var(--color-gold-soft);
+}
+
+/* Subtle elevation for cards/panels/tables/modals — the "premium" lift that
+   distinguishes floating surfaces from the flat background without
+   abandoning the hairline-border aesthetic. */
+@utility card-shadow {
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.025) inset,
+    0 24px 48px -32px rgba(0, 0, 0, 0.65);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Signature glow behind the sidebar mark / login mark — the Midnight Solar
+   "sunrise" motif. Wrap the mark in a relatively-positioned parent with
+   this class and overflow:visible. */
+.brand-glow { position: relative; }
+.brand-glow::after {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  background: radial-gradient(circle, var(--color-gold) 0%, transparent 70%);
+  opacity: 0.22;
+  filter: blur(10px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Gradient underline signature on the active sidebar item */
+.nav-active-underline {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-gold), transparent);
+}
