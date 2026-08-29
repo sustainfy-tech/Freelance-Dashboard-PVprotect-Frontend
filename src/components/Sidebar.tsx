@@ -51,7 +51,7 @@ export default function Sidebar() {
                 "group relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-[13px] font-medium transition-colors",
                 isActive
                   ? "bg-gold-soft text-gold"
-                  : "text-lo hover:bg-surface2 hover:text-hi"
+                  : "text-lo hover:bg-surface2 hover:text-hi",
               )
             }
           >
@@ -72,7 +72,9 @@ export default function Sidebar() {
           className={({ isActive }) =>
             clsx(
               "relative flex items-center gap-3 rounded-sm px-3 py-2.5 text-[13px] font-medium transition-colors",
-              isActive ? "bg-gold-soft text-gold" : "text-lo hover:bg-surface2 hover:text-hi"
+              isActive
+                ? "bg-gold-soft text-gold"
+                : "text-lo hover:bg-surface2 hover:text-hi",
             )
           }
         >

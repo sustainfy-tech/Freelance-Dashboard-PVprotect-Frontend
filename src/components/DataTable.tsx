@@ -1,37 +1,17 @@
-import type { ReactNode } from "react";
+import type {
+  Column,
+  DataTableProps,
+} from "../types/Components/DataTable.types";
 
-export interface Column<T> {
-  /** Optional stable id for this column, used as the React key when
-   * rendering header/cell elements. Falls back to header+index if
-   * omitted — but multiple columns sharing the same header (e.g. two
-   * icon-only action columns with header: "") should set this
-   * explicitly to avoid duplicate-key warnings. */
-  id?: string;
-  header: string;
-  accessor: (row: T) => ReactNode;
-  className?: string;
-}
+export type { Column };
 
 export default function DataTable<T>({
   columns,
   rows,
   onRowClick,
   rowKey,
-}: {
-  columns: Column<T>[];
-  rows: T[];
-  onRowClick?: (row: T) => void;
-  /** Returns a stable unique string for each row. Required — different
-   * entities use different identifier field names (bookingId, serviceId,
-   * etc.), so we don't assume an `id` field exists. */
-  rowKey: (row: T) => string;
-}) {
+}: DataTableProps<T>) {
   const safeRows = Array.isArray(rows) ? rows : [];
-  const getRowKey = (row: any, index: number) => {
-    if (typeof rowKey === "function") return rowKey(row);
-    if (typeof rowKey === "string") return (row as any)[rowKey];
-    return (row as any).id ?? (row as any)._id ?? index;
-  };
 
   return (
     <div className="card-shadow overflow-x-auto rounded-md border border-border bg-surface">
@@ -51,7 +31,7 @@ export default function DataTable<T>({
         <tbody>
           {safeRows.map((row, index) => (
             <tr
-              key={getRowKey(row, index)}
+              key={rowKey(row) ?? index}
               onClick={() => onRowClick?.(row)}
               className={`border-b border-border last:border-0 ${
                 onRowClick ? "cursor-pointer hover:bg-surface2" : ""

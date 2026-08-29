@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { Plus, Calendar, Trash2, Power, Star, Pencil, ClipboardList, X, RefreshCw } from "lucide-react";
+import {
+  Plus,
+  Calendar,
+  Trash2,
+  Power,
+  Star,
+  Pencil,
+  ClipboardList,
+  X,
+  RefreshCw,
+} from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
 import { ToolbarSearch } from "../components/Toolbar";
@@ -20,35 +30,48 @@ import {
   createServiceForm,
   updateServiceForm,
 } from "../api/services";
-import type { ApiService, ApiSlot } from "../api/types";
-import type { ApiFormField, ApiFormFieldType, ApiServiceForm } from "../api/services";
+import type { ApiService, ApiSlot } from "../types/Pages/Services.types";
+import type {
+  ApiFormField,
+  ApiFormFieldType,
+  ApiServiceForm,
+} from "../types/Pages/Services.types";
+import { SLOT_STATUSES, type SlotStatus } from "../types/Pages/Services.types";
 import clsx from "clsx";
 
 const TIME_RE = /^\d{2}:\d{2}$/;
-const SLOT_STATUSES = ["open", "blocked", "booked"] as const;
-type SlotStatus = (typeof SLOT_STATUSES)[number];
 
 export default function Services() {
   const [query, setQuery] = useState("");
-  const { data, loading, error, refetch } = useApiData(() => listServices(), []);
+  const { data, loading, error, refetch } = useApiData(
+    () => listServices(),
+    [],
+  );
   const [detailServiceId, setDetailServiceId] = useState<string | null>(null);
   const [editServiceId, setEditServiceId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [formModalServiceId, setFormModalServiceId] = useState<string | null>(null);
+  const [formModalServiceId, setFormModalServiceId] = useState<string | null>(
+    null,
+  );
 
-  // serviceId -> form (or null once we've confirmed none exists). Undefined = not loaded yet.
-  const [formsByService, setFormsByService] = useState<Record<string, ApiServiceForm | null>>({});
+  const [formsByService, setFormsByService] = useState<
+    Record<string, ApiServiceForm | null>
+  >({});
 
   const allServices = data ?? [];
-  const services = allServices.filter((s) => !query || s.title?.toLowerCase().includes(query.toLowerCase()));
-  const detailService = detailServiceId ? allServices.find((s) => s.serviceId === detailServiceId) ?? null : null;
-  const editService = editServiceId ? allServices.find((s) => s.serviceId === editServiceId) ?? null : null;
+  const services = allServices.filter(
+    (s) => !query || s.title?.toLowerCase().includes(query.toLowerCase()),
+  );
+  const detailService = detailServiceId
+    ? (allServices.find((s) => s.serviceId === detailServiceId) ?? null)
+    : null;
+  const editService = editServiceId
+    ? (allServices.find((s) => s.serviceId === editServiceId) ?? null)
+    : null;
   const formModalService = formModalServiceId
-    ? allServices.find((s) => s.serviceId === formModalServiceId) ?? null
+    ? (allServices.find((s) => s.serviceId === formModalServiceId) ?? null)
     : null;
 
-  // Load form-existence for every service whenever the list (re)loads, so the
-  // "Add form" / "Update form" label is correct without an extra click.
   useEffect(() => {
     if (!data) return;
     let cancelled = false;
@@ -57,7 +80,7 @@ export default function Services() {
         data.map(async (s) => {
           const form = await getServiceForm(s.serviceId);
           return [s.serviceId, form] as const;
-        })
+        }),
       );
       if (!cancelled) setFormsByService(Object.fromEntries(entries));
     })();
@@ -94,22 +117,34 @@ export default function Services() {
     {
       id: "duration",
       header: "Duration",
-      accessor: (s) => <span className="font-mono text-lo">{s.duration ?? "—"}</span>,
+      accessor: (s) => (
+        <span className="font-mono text-lo">{s.duration ?? "—"}</span>
+      ),
     },
     {
       id: "price",
       header: "Price",
-      accessor: (s) => <span className="font-mono">{s.price != null ? `₹${s.price.toLocaleString("en-IN")}` : "—"}</span>,
+      accessor: (s) => (
+        <span className="font-mono">
+          {s.price != null ? `₹${s.price.toLocaleString("en-IN")}` : "—"}
+        </span>
+      ),
     },
     {
       id: "unavailableDates",
       header: "Unavailable dates",
-      accessor: (s) => <span className="font-mono text-lo">{s.unavailableDates?.length ?? 0}</span>,
+      accessor: (s) => (
+        <span className="font-mono text-lo">
+          {s.unavailableDates?.length ?? 0}
+        </span>
+      ),
     },
     {
       id: "defaultTimesCount",
       header: "Default times",
-      accessor: (s) => <span className="font-mono text-lo">{s.defaultTimes?.length ?? 0}</span>,
+      accessor: (s) => (
+        <span className="font-mono text-lo">{s.defaultTimes?.length ?? 0}</span>
+      ),
     },
     {
       id: "available",
@@ -119,7 +154,9 @@ export default function Services() {
           onClick={() => toggleAvailability(s)}
           className={clsx(
             "flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide",
-            s.available ? "border-teal-dim/40 bg-teal-soft text-teal" : "border-border bg-surface3 text-faint"
+            s.available
+              ? "border-teal-dim/40 bg-teal-soft text-teal"
+              : "border-border bg-surface3 text-faint",
           )}
         >
           <Power size={11} /> {s.available ? "Active" : "Disabled"}
@@ -130,7 +167,10 @@ export default function Services() {
       id: "form",
       header: "Form",
       accessor: (s) => {
-        const loaded = Object.prototype.hasOwnProperty.call(formsByService, s.serviceId);
+        const loaded = Object.prototype.hasOwnProperty.call(
+          formsByService,
+          s.serviceId,
+        );
         const form = formsByService[s.serviceId];
         return (
           <button
@@ -138,7 +178,9 @@ export default function Services() {
             disabled={!loaded}
             className={clsx(
               "flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide disabled:opacity-50",
-              form ? "border-teal-dim/40 bg-teal-soft text-teal" : "border-border bg-surface2 text-lo hover:text-hi"
+              form
+                ? "border-teal-dim/40 bg-teal-soft text-teal"
+                : "border-border bg-surface2 text-lo hover:text-hi",
             )}
           >
             <ClipboardList size={11} />
@@ -151,7 +193,11 @@ export default function Services() {
       id: "edit",
       header: "",
       accessor: (s) => (
-        <button onClick={() => setEditServiceId(s.serviceId)} className="text-faint hover:text-hi" aria-label="Edit service">
+        <button
+          onClick={() => setEditServiceId(s.serviceId)}
+          className="text-faint hover:text-hi"
+          aria-label="Edit service"
+        >
           <Pencil size={14} />
         </button>
       ),
@@ -160,7 +206,11 @@ export default function Services() {
       id: "delete",
       header: "",
       accessor: (s) => (
-        <button onClick={() => handleDelete(s)} className="text-faint hover:text-danger" aria-label="Delete service">
+        <button
+          onClick={() => handleDelete(s)}
+          className="text-faint hover:text-danger"
+          aria-label="Delete service"
+        >
           <Trash2 size={14} />
         </button>
       ),
@@ -180,7 +230,8 @@ export default function Services() {
               disabled={loading}
               className="flex items-center gap-1.5 rounded-sm border border-white/10 px-3.5 py-2 font-mono text-[11px] font-medium uppercase tracking-wide text-lo transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{" "}
+              Refresh
             </button>
             <button
               onClick={() => setCreateOpen(true)}
@@ -193,14 +244,22 @@ export default function Services() {
       />
 
       <div className="mb-4">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search services…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search services…"
+        />
       </div>
 
       {loading && <LoadingState label="Loading services…" />}
       {!loading && error && <ErrorState message={error} onRetry={refetch} />}
       {!loading && !error && (
         <>
-          <DataTable columns={columns} rows={services} rowKey={(s) => s.serviceId} />
+          <DataTable
+            columns={columns}
+            rows={services}
+            rowKey={(s) => s.serviceId}
+          />
           <p className="mt-3 font-mono text-[11px] text-faint">
             Showing {services.length} of {allServices.length} services
           </p>
@@ -242,7 +301,10 @@ export default function Services() {
           existingForm={formsByService[formModalServiceId] ?? null}
           onClose={() => setFormModalServiceId(null)}
           onSaved={(form) => {
-            setFormsByService((prev) => ({ ...prev, [formModalServiceId]: form }));
+            setFormsByService((prev) => ({
+              ...prev,
+              [formModalServiceId]: form,
+            }));
             setFormModalServiceId(null);
           }}
         />
@@ -251,7 +313,13 @@ export default function Services() {
   );
 }
 
-function CreateServiceModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreateServiceModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("");
   const [price, setPrice] = useState("");
@@ -319,18 +387,38 @@ function CreateServiceModal({ onClose, onCreated }: { onClose: () => void; onCre
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Title">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="input text-white" placeholder="Solar Panel Cleaning" />
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input text-white"
+              placeholder="Solar Panel Cleaning"
+            />
           </Field>
           <Field label="Icon">
-            <input value={icon} onChange={(e) => setIcon(e.target.value)} className="input text-white" placeholder="sunny-outline" />
+            <input
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              className="input text-white"
+              placeholder="sunny-outline"
+            />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Price (₹)">
-            <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" className="input text-white" />
+            <input
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              type="number"
+              className="input text-white"
+            />
           </Field>
           <Field label="Duration">
-            <input value={duration} onChange={(e) => setDuration(e.target.value)} className="input text-white" placeholder="2-3 hours" />
+            <input
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="input text-white"
+              placeholder="2-3 hours"
+            />
           </Field>
         </div>
 
@@ -343,13 +431,19 @@ function CreateServiceModal({ onClose, onCreated }: { onClose: () => void; onCre
                   className="flex items-center gap-1 rounded-full border border-border bg-surface2 px-2.5 py-1 font-mono text-[11px] text-lo"
                 >
                   {t}
-                  <button type="button" onClick={() => removeTime(t)} className="text-faint hover:text-danger">
+                  <button
+                    type="button"
+                    onClick={() => removeTime(t)}
+                    className="text-faint hover:text-danger"
+                  >
                     ×
                   </button>
                 </span>
               ))
             ) : (
-              <span className="text-[12px] text-faint">No time slots added yet</span>
+              <span className="text-[12px] text-faint">
+                No time slots added yet
+              </span>
             )}
           </div>
           <div className="flex gap-2">
@@ -372,7 +466,10 @@ function CreateServiceModal({ onClose, onCreated }: { onClose: () => void; onCre
 
         {err && <p className="text-[12px] text-danger">{err}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi">
+          <button
+            onClick={onClose}
+            className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi"
+          >
             Cancel
           </button>
           <button
@@ -388,8 +485,6 @@ function CreateServiceModal({ onClose, onCreated }: { onClose: () => void; onCre
   );
 }
 
-// Same shape as CreateServiceModal, but prefilled from an existing service
-// and calling PATCH /services/:id via updateService() on submit.
 function EditServiceModal({
   service,
   onClose,
@@ -401,7 +496,9 @@ function EditServiceModal({
 }) {
   const [title, setTitle] = useState(service.title ?? "");
   const [icon, setIcon] = useState(service.icon ?? "");
-  const [price, setPrice] = useState(service.price != null ? String(service.price) : "");
+  const [price, setPrice] = useState(
+    service.price != null ? String(service.price) : "",
+  );
   const [duration, setDuration] = useState(service.duration ?? "");
 
   const [times, setTimes] = useState<string[]>(service.defaultTimes ?? []);
@@ -465,18 +562,38 @@ function EditServiceModal({
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Title">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} className="input" placeholder="Solar Panel Cleaning" />
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="input"
+              placeholder="Solar Panel Cleaning"
+            />
           </Field>
           <Field label="Icon">
-            <input value={icon} onChange={(e) => setIcon(e.target.value)} className="input" placeholder="sunny-outline" />
+            <input
+              value={icon}
+              onChange={(e) => setIcon(e.target.value)}
+              className="input"
+              placeholder="sunny-outline"
+            />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Price (₹)">
-            <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" className="input" />
+            <input
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              type="number"
+              className="input"
+            />
           </Field>
           <Field label="Duration">
-            <input value={duration} onChange={(e) => setDuration(e.target.value)} className="input" placeholder="2-3 hours" />
+            <input
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="input"
+              placeholder="2-3 hours"
+            />
           </Field>
         </div>
 
@@ -489,13 +606,19 @@ function EditServiceModal({
                   className="flex items-center gap-1 rounded-full border border-border bg-surface2 px-2.5 py-1 font-mono text-[11px] text-lo"
                 >
                   {t}
-                  <button type="button" onClick={() => removeTime(t)} className="text-faint hover:text-danger">
+                  <button
+                    type="button"
+                    onClick={() => removeTime(t)}
+                    className="text-faint hover:text-danger"
+                  >
                     ×
                   </button>
                 </span>
               ))
             ) : (
-              <span className="text-[12px] text-faint">No time slots added yet</span>
+              <span className="text-[12px] text-faint">
+                No time slots added yet
+              </span>
             )}
           </div>
           <div className="flex gap-2">
@@ -518,7 +641,10 @@ function EditServiceModal({
 
         {err && <p className="text-[12px] text-danger">{err}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi">
+          <button
+            onClick={onClose}
+            className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi"
+          >
             Cancel
           </button>
           <button
@@ -533,10 +659,6 @@ function EditServiceModal({
     </Modal>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Service intake form builder — "Add form" / "Update form" modal
-// ---------------------------------------------------------------------------
 
 const FIELD_TYPES: { value: ApiFormFieldType; label: string }[] = [
   { value: "text", label: "Text" },
@@ -555,18 +677,27 @@ const FIELD_TYPES: { value: ApiFormFieldType; label: string }[] = [
   { value: "document", label: "Document" },
 ];
 
-// Field types that need a configurable list of choices.
 const OPTION_TYPES: ApiFormFieldType[] = ["select", "radio", "multiselect"];
-// Field types that don't take free-text placeholder content.
-const NO_PLACEHOLDER_TYPES: ApiFormFieldType[] = ["checkbox", "photo", "document"];
+const NO_PLACEHOLDER_TYPES: ApiFormFieldType[] = [
+  "checkbox",
+  "photo",
+  "document",
+];
 
 function genFieldId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto)
+    return crypto.randomUUID();
   return `field_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function blankField(): ApiFormField {
-  return { fieldId: genFieldId(), label: "", type: "text", required: false, placeholder: "" };
+  return {
+    fieldId: genFieldId(),
+    label: "",
+    type: "text",
+    required: false,
+    placeholder: "",
+  };
 }
 
 function ServiceFormModal({
@@ -582,20 +713,23 @@ function ServiceFormModal({
 }) {
   const isEditing = !!existingForm;
 
-  const [title, setTitle] = useState(existingForm?.title ?? `${service.title} — intake form`);
+  const [title, setTitle] = useState(
+    existingForm?.title ?? `${service.title} — intake form`,
+  );
   const [fields, setFields] = useState<ApiFormField[]>(
-    existingForm?.fields?.length ? existingForm.fields : [blankField()]
+    existingForm?.fields?.length ? existingForm.fields : [blankField()],
   );
 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  // Draft text for the "add an option" input, per field, keyed by fieldId —
-  // so each select/radio/multiselect field's option-composer is independent.
-  const [newOptionByField, setNewOptionByField] = useState<Record<string, string>>({});
+  const [newOptionByField, setNewOptionByField] = useState<
+    Record<string, string>
+  >({});
 
   function updateField(fieldId: string, patch: Partial<ApiFormField>) {
-    setFields((prev) => prev.map((f) => (f.fieldId === fieldId ? { ...f, ...patch } : f)));
+    setFields((prev) =>
+      prev.map((f) => (f.fieldId === fieldId ? { ...f, ...patch } : f)),
+    );
   }
 
   function addOption(fieldId: string) {
@@ -604,16 +738,25 @@ function ServiceFormModal({
     setFields((prev) =>
       prev.map((f) =>
         f.fieldId === fieldId
-          ? { ...f, options: (f.options ?? []).includes(value) ? f.options : [...(f.options ?? []), value] }
-          : f
-      )
+          ? {
+              ...f,
+              options: (f.options ?? []).includes(value)
+                ? f.options
+                : [...(f.options ?? []), value],
+            }
+          : f,
+      ),
     );
     setNewOptionByField((prev) => ({ ...prev, [fieldId]: "" }));
   }
 
   function removeOption(fieldId: string, option: string) {
     setFields((prev) =>
-      prev.map((f) => (f.fieldId === fieldId ? { ...f, options: (f.options ?? []).filter((o) => o !== option) } : f))
+      prev.map((f) =>
+        f.fieldId === fieldId
+          ? { ...f, options: (f.options ?? []).filter((o) => o !== option) }
+          : f,
+      ),
     );
   }
 
@@ -624,8 +767,10 @@ function ServiceFormModal({
   function removeField(fieldId: string) {
     setFields((prev) => prev.filter((f) => f.fieldId !== fieldId));
     setNewOptionByField((prev) => {
-      const { [fieldId]: _drop, ...rest } = prev;
-      return rest;
+      if (!(fieldId in prev)) return prev;
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
     });
   }
 
@@ -643,7 +788,10 @@ function ServiceFormModal({
         setErr("Every field needs a label.");
         return;
       }
-      if (OPTION_TYPES.includes(f.type) && (!f.options || f.options.length === 0)) {
+      if (
+        OPTION_TYPES.includes(f.type) &&
+        (!f.options || f.options.length === 0)
+      ) {
         setErr(`"${f.label}" needs at least one option.`);
         return;
       }
@@ -673,7 +821,11 @@ function ServiceFormModal({
 
   return (
     <Modal
-      title={isEditing ? `Update form — ${service.title}` : `Add form — ${service.title}`}
+      title={
+        isEditing
+          ? `Update form — ${service.title}`
+          : `Add form — ${service.title}`
+      }
       onClose={onClose}
       widthClassName="max-w-3xl"
     >
@@ -688,27 +840,42 @@ function ServiceFormModal({
         </Field>
 
         <div>
-          <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-wide text-faint">Fields</span>
+          <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-wide text-faint">
+            Fields
+          </span>
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f, i) => (
-              <div key={f.fieldId} className="space-y-2 border border-border bg-surface2 p-3">
+              <div
+                key={f.fieldId}
+                className="space-y-2 border border-border bg-surface2 p-3"
+              >
                 <div
                   className="grid items-start gap-2"
                   style={{ gridTemplateColumns: "1fr 112px 20px" }}
                 >
                   <input
                     value={f.label}
-                    onChange={(e) => updateField(f.fieldId, { label: e.target.value })}
+                    onChange={(e) =>
+                      updateField(f.fieldId, { label: e.target.value })
+                    }
                     className="input w-full"
                     placeholder={`Field ${i + 1} label`}
                   />
                   <select
                     value={f.type}
-                    onChange={(e) => updateField(f.fieldId, { type: e.target.value as ApiFormFieldType })}
+                    onChange={(e) =>
+                      updateField(f.fieldId, {
+                        type: e.target.value as ApiFormFieldType,
+                      })
+                    }
                     className="input w-full"
                   >
                     {FIELD_TYPES.map((t) => (
-                      <option key={t.value} value={t.value} className="text-black">
+                      <option
+                        key={t.value}
+                        value={t.value}
+                        className="text-black"
+                      >
                         {t.label}
                       </option>
                     ))}
@@ -724,12 +891,12 @@ function ServiceFormModal({
                   </button>
                 </div>
 
-                {/* Placeholder text shown inside the field when rendered on the intake form.
-                    Not applicable to checkbox or file-upload fields (photo/document). */}
                 {!NO_PLACEHOLDER_TYPES.includes(f.type) && (
                   <input
                     value={f.placeholder ?? ""}
-                    onChange={(e) => updateField(f.fieldId, { placeholder: e.target.value })}
+                    onChange={(e) =>
+                      updateField(f.fieldId, { placeholder: e.target.value })
+                    }
                     className="input text-white placeholder:text-white"
                     placeholder="Placeholder text shown in the field (optional)"
                   />
@@ -740,7 +907,9 @@ function ServiceFormModal({
                     <input
                       type="checkbox"
                       checked={!!f.required}
-                      onChange={(e) => updateField(f.fieldId, { required: e.target.checked })}
+                      onChange={(e) =>
+                        updateField(f.fieldId, { required: e.target.checked })
+                      }
                     />
                     Required
                   </label>
@@ -768,14 +937,19 @@ function ServiceFormModal({
                           </span>
                         ))
                       ) : (
-                        <span className="text-[12px] text-faint">No options added yet</span>
+                        <span className="text-[12px] text-faint">
+                          No options added yet
+                        </span>
                       )}
                     </div>
                     <div className="flex gap-2">
                       <input
                         value={newOptionByField[f.fieldId] ?? ""}
                         onChange={(e) =>
-                          setNewOptionByField((prev) => ({ ...prev, [f.fieldId]: e.target.value }))
+                          setNewOptionByField((prev) => ({
+                            ...prev,
+                            [f.fieldId]: e.target.value,
+                          }))
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -810,7 +984,10 @@ function ServiceFormModal({
 
         {err && <p className="text-[12px] text-danger">{err}</p>}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi">
+          <button
+            onClick={onClose}
+            className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi"
+          >
             Cancel
           </button>
           <button
@@ -826,10 +1003,18 @@ function ServiceFormModal({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-wide text-faint">{label}</span>
+      <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-wide text-faint">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -861,8 +1046,11 @@ function SlotStatusControl({
     setOpen(false);
     if (next === status) return;
     if (status === "booked") {
-      // Leaving a booked slot can cancel a real customer booking — confirm first.
-      if (!confirm(`This slot is booked. Set it to "${next}" anyway? This will not notify the customer.`)) {
+      if (
+        !confirm(
+          `This slot is booked. Set it to "${next}" anyway? This will not notify the customer.`,
+        )
+      ) {
         return;
       }
     }
@@ -876,7 +1064,7 @@ function SlotStatusControl({
         disabled={busy}
         className={clsx(
           "rounded-full border px-2.5 py-1 font-mono text-[10.5px] uppercase tracking-wide disabled:opacity-50",
-          STATUS_STYLES[status] ?? STATUS_STYLES.blocked
+          STATUS_STYLES[status] ?? STATUS_STYLES.blocked,
         )}
       >
         {status}
@@ -889,7 +1077,7 @@ function SlotStatusControl({
               onClick={() => pick(s)}
               className={clsx(
                 "block w-full px-2.5 py-1.5 text-left font-mono text-[10.5px] uppercase tracking-wide hover:bg-surface3",
-                s === status ? "text-hi" : "text-lo"
+                s === status ? "text-hi" : "text-lo",
               )}
             >
               {s}
@@ -915,14 +1103,10 @@ function ServiceDetail({
 
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [daySlots, setDaySlots] = useState<ApiSlot[]>([]);
-  const [daySlotsLoading, setDaySlotsLoading] = useState(false);
+  const [daySlotsLoading, setDaySlotsLoading] = useState(true);
 
-  // const defaultTimes = service.defaultTimes ?? [];
-
-  // Fetch computed slots whenever the selected date changes (or after any update)
   useEffect(() => {
     let cancelled = false;
-    setDaySlotsLoading(true);
     listSlots(service.serviceId, selectedDate)
       .then((slots: ApiSlot[]) => {
         if (!cancelled) setDaySlots(slots);
@@ -989,8 +1173,15 @@ function ServiceDetail({
                   key={d}
                   className="flex items-center gap-1 rounded-full border border-border bg-surface2 px-2.5 py-1 font-mono text-[11px] text-lo"
                 >
-                  {new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                  <button onClick={() => removeDate(d)} disabled={busy} className="text-faint hover:text-danger">
+                  {new Date(d).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                  })}
+                  <button
+                    onClick={() => removeDate(d)}
+                    disabled={busy}
+                    className="text-faint hover:text-danger"
+                  >
                     ×
                   </button>
                 </span>
@@ -1016,49 +1207,35 @@ function ServiceDetail({
           </div>
         </section>
 
-        {/* Default time slots — read-only display of the recurring template.
-            Editing lives in the Edit modal now (title/icon/price/duration/
-            defaultTimes); use "Manage a day" below for per-day exceptions. */}
-        {/* <section>
-          <p className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-faint">
-            <Clock size={12} /> Default time slots
-          </p>
-          <div className="border border-border bg-surface2">
-            {defaultTimes.length ? (
-              defaultTimes.map((t, i) => (
-                <div
-                  key={t}
-                  className={clsx(
-                    "px-3 py-2",
-                    i !== defaultTimes.length - 1 && "border-b border-border"
-                  )}
-                >
-                  <span className="font-mono text-[12px] text-hi">{t}</span>
-                </div>
-              ))
-            ) : (
-              <p className="px-3 py-3 text-[12px] text-faint">No default times set.</p>
-            )}
-          </div>
-        </section> */}
-
         {/* Per-day view — pick a date, set open/blocked/booked per slot as an exception */}
         <section>
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">Manage a day</p>
+          <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">
+            Manage a day
+          </p>
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setDaySlotsLoading(true);
+            }}
             className="input mb-3 w-full"
           />
 
-          {daySlotsLoading && <p className="text-[12px] text-faint">Loading slots…</p>}
+          {daySlotsLoading && (
+            <p className="text-[12px] text-faint">Loading slots…</p>
+          )}
 
           {!daySlotsLoading && (
             <div className="space-y-1.5">
               {daySlots.map((slot) => (
-                <div key={slot.slotId} className="flex items-center justify-between border border-border bg-surface2 px-3 py-2">
-                  <span className="font-mono text-[12px] text-hi">{slot.time}</span>
+                <div
+                  key={slot.slotId}
+                  className="flex items-center justify-between border border-border bg-surface2 px-3 py-2"
+                >
+                  <span className="font-mono text-[12px] text-hi">
+                    {slot.time}
+                  </span>
                   <SlotStatusControl
                     slot={slot}
                     busy={busy}
@@ -1067,7 +1244,9 @@ function ServiceDetail({
                 </div>
               ))}
               {daySlots.length === 0 && (
-                <p className="text-[12px] text-faint">No default times set — add some above.</p>
+                <p className="text-[12px] text-faint">
+                  No default times set — add some above.
+                </p>
               )}
             </div>
           )}

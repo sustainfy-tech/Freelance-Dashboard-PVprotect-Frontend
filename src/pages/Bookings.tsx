@@ -1,5 +1,12 @@
 import { useMemo, useState } from "react";
-import { UserPlus, Info, ExternalLink, X, FileText, RefreshCw } from "lucide-react";
+import {
+  UserPlus,
+  Info,
+  ExternalLink,
+  X,
+  FileText,
+  RefreshCw,
+} from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
@@ -12,23 +19,17 @@ import { listTechniciansForAdmin } from "../api/technicians";
 import type {
   ApiBookingRequest,
   BookingRequestStatus,
-  ApiTechnician,
-} from "../api/types";
+} from "../types/Pages/Bookings.types";
+import type { ApiTechnician } from "../types/Pages/Technicians.types";
+import type {
+  VisitFileValue,
+  VisitFieldValue,
+  BookingRequestWithVisitData,
+} from "../types/Pages/Bookings.types";
 import clsx from "clsx";
 
-
-const BUCKET_NAME =  'pvprotech-blogs';
-const AWS_REGION =  'ap-south-1';
-
-// A visit-data field is either a plain value (e.g. "Generation Reading": 85)
-// or an uploaded file object (e.g. "Before": { name, url, size, type }).
-type VisitFileValue = {
-  name: string;
-  s3key: string;
-  size: number;
-  type: string;
-};
-type VisitFieldValue = string | number | boolean | VisitFileValue;
+const BUCKET_NAME = "pvprotech-blogs";
+const AWS_REGION = "ap-south-1";
 
 function isVisitFile(value: VisitFieldValue): value is VisitFileValue {
   return (
@@ -38,9 +39,6 @@ function isVisitFile(value: VisitFieldValue): value is VisitFileValue {
     typeof (value as VisitFileValue).s3key === "string"
   );
 }
-
-// Visit-data files only carry the S3 object key (e.g. "/visitdata/..."),
-// not a full URL — build the actual fetchable URL from it.
 function s3Url(s3key: string) {
   const key = s3key.startsWith("/") ? s3key.slice(1) : s3key;
   return `https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
@@ -58,7 +56,6 @@ const filters: { label: string; value: BookingRequestStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Assigned", value: "assigned" },
-  // { label: "In progress", value: "in_progress" },
   { label: "Submitted", value: "submitted" },
   { label: "Rejected", value: "rejected" },
 ];
@@ -96,7 +93,6 @@ export default function Bookings() {
   const [detailsTarget, setDetailsTarget] = useState<ApiBookingRequest | null>(
     null,
   );
-  // Target + mode for the "View visit data" / "View reason" modal.
   const [visitTarget, setVisitTarget] = useState<ApiBookingRequest | null>(
     null,
   );
@@ -116,14 +112,6 @@ export default function Bookings() {
     error: techniciansError,
   } = useApiData(() => listTechniciansForAdmin(), []);
 
-  // NOTE: /app-users/all's real response shape hasn't been fully confirmed
-  // yet — apiRequest() already unwraps the top-level { success, data }
-  // envelope, but `data` itself may be an array directly, or an object
-  // wrapping the array under some key (e.g. { technicians: [...] } or
-  // { users: [...] }, as seen on other endpoints in this backend). This
-  // normalizes whichever shape shows up so the UI doesn't crash. Once the
-  // real shape (and ApiTechnician's exact fields) are confirmed, replace
-  // this with a direct `technicianData ?? []` and remove the guesswork.
   const technicians: ApiTechnician[] = useMemo(() => {
     if (Array.isArray(technicianData)) return technicianData;
     if (technicianData && typeof technicianData === "object") {
@@ -135,7 +123,7 @@ export default function Bookings() {
     return [];
   }, [technicianData]);
 
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -147,16 +135,14 @@ export default function Bookings() {
     );
   }, [rows, query]);
 
+  const visitTargetExtended = visitTarget as BookingRequestWithVisitData | null;
+
   function openAssign(row: ApiBookingRequest) {
     setAssignTarget(row);
     setSelectedTechnician(row.assignedTechnicianId ?? "");
     setAssignError(null);
   }
 
-  // Look up the technician object matching the currently selected ID.
-  // Needed because the backend requires both assignedTechnicianId AND
-  // assignedTechnicianName on assign — the <select> below only gives us
-  // the ID, so we resolve the name from the loaded technicians list.
   function findTechnicianById(techId: string): ApiTechnician | undefined {
     return technicians.find((t) => String(t.verifiedUserId) === techId);
   }
@@ -200,7 +186,6 @@ export default function Bookings() {
     setDetailsTarget(row);
   }
 
-  // Opens the visit-data/reason modal depending on the row's status.
   function openVisit(row: ApiBookingRequest, mode: "visit" | "reason") {
     setVisitTarget(row);
     setVisitMode(mode);
@@ -308,12 +293,11 @@ export default function Bookings() {
             onClick={refetch}
             className="flex items-center gap-1.5 rounded-sm border border-surface3 px-3.5 py-2 font-mono text-[11px] font-medium uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-50"
           >
-           <RefreshCw size={14} className={clsx(loading && "animate-spin")} />
-              Refresh
+            <RefreshCw size={14} className={clsx(loading && "animate-spin")} />
+            Refresh
           </button>
         }
       />
-      
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <ToolbarSearch
@@ -425,7 +409,7 @@ export default function Bookings() {
           <dl className="space-y-3 text-[13px]">
             <DetailRow
               label="Booking ID"
-              value={detailsTarget.bookingId.slice(0,8)}
+              value={detailsTarget.bookingId.slice(0, 8)}
               mono
             />
             <DetailRow
@@ -434,7 +418,11 @@ export default function Bookings() {
             />
             <DetailRow label="Service type" value={detailsTarget.serviceType} />
             <DetailRow label="Plant name" value={detailsTarget.plantName} />
-            <DetailRow label="Plant ID" value={detailsTarget.plantId?.slice(0,8)} mono />
+            <DetailRow
+              label="Plant ID"
+              value={detailsTarget.plantId?.slice(0, 8)}
+              mono
+            />
             <DetailRow
               label="Plant address"
               value={detailsTarget.plantAddress}
@@ -475,30 +463,30 @@ export default function Bookings() {
         </Modal>
       )}
 
-      {visitTarget && (
+      {visitTargetExtended && (
         <Modal
           title={
             visitMode === "visit"
-              ? `Visit data — ${visitTarget.plantName ?? visitTarget.bookingId}`
-              : `Rejection reason — ${visitTarget.plantName ?? visitTarget.bookingId}`
+              ? `Visit data — ${visitTargetExtended.plantName ?? visitTargetExtended.bookingId}`
+              : `Rejection reason — ${visitTargetExtended.plantName ?? visitTargetExtended.bookingId}`
           }
           onClose={() => setVisitTarget(null)}
-          // NOTE: assumes Modal forwards this to its dialog container.
-          // If Modal doesn't accept this prop yet, add one — see note below.
-          widthClassName={visitMode === "visit" ? "w-[75vw] max-w-[75vw]" : undefined}
+          widthClassName={
+            visitMode === "visit" ? "w-[75vw] max-w-[75vw]" : undefined
+          }
         >
           {visitMode === "visit" ? (
             <VisitDataView
-              visitData={(visitTarget as any).visitData}
-              action={(visitTarget as any).action}
-              technicianName={visitTarget.assignedTechnicianName}
-              technicianId={visitTarget.assignedTechnicianId}
+              visitData={visitTargetExtended.visitData}
+              action={visitTargetExtended.action}
+              technicianName={visitTargetExtended.assignedTechnicianName}
+              technicianId={visitTargetExtended.assignedTechnicianId}
             />
           ) : (
             <p className="text-[13px] leading-relaxed text-hi">
-              {(visitTarget as any).action?.reason ??
-                (visitTarget as any).rejectionReason ??
-                (visitTarget as any).reason ??
+              {visitTargetExtended.action?.reason ??
+                visitTargetExtended.rejectionReason ??
+                visitTargetExtended.reason ??
                 "No reason was provided for this rejection."}
             </p>
           )}
@@ -517,9 +505,6 @@ export default function Bookings() {
   );
 }
 
-// Renders the visitData object across a horizontal layout: a left info
-// column (technician, accepted-at, readings) and a right column with
-// photos (tap to open a fullscreen lightbox) and documents ("View doc").
 function VisitDataView({
   visitData,
   action,
@@ -531,7 +516,6 @@ function VisitDataView({
   technicianName?: string | null;
   technicianId?: string | null;
 }) {
-  // Currently open fullscreen photo, if any.
   const [lightbox, setLightbox] = useState<{
     url: string;
     label: string;
@@ -549,8 +533,6 @@ function VisitDataView({
   const docEntries = fileEntries.filter(
     ([, file]) => !file.type?.startsWith("image/"),
   );
-
-  
 
   const hasVisitData = entries.length > 0;
 
@@ -615,9 +597,7 @@ function VisitDataView({
                 <button
                   key={label}
                   type="button"
-                  onClick={() =>
-                    setLightbox({ url: s3Url(file.s3key), label })
-                  }
+                  onClick={() => setLightbox({ url: s3Url(file.s3key), label })}
                   className="group block overflow-hidden rounded-sm border border-border bg-surface2 text-left"
                 >
                   <img

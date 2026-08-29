@@ -43,7 +43,7 @@ export function FilterChip({
         "whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide transition-colors",
         active
           ? "border-gold-dim bg-gold-soft text-gold"
-          : "border-border bg-surface2 text-lo hover:text-hi"
+          : "border-border bg-surface2 text-lo hover:text-hi",
       )}
     >
       {label}

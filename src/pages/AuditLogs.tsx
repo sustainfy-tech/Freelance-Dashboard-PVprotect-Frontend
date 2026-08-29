@@ -47,10 +47,19 @@ export default function AuditLogs() {
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search actor, action, correlation ID…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search actor, action, correlation ID…"
+        />
         <div className="flex flex-wrap gap-2">
           {roles.map((r) => (
-            <FilterChip key={r.value} label={r.label} active={role === r.value} onClick={() => setRole(r.value)} />
+            <FilterChip
+              key={r.value}
+              label={r.label}
+              active={role === r.value}
+              onClick={() => setRole(r.value)}
+            />
           ))}
         </div>
       </div>
@@ -61,13 +70,20 @@ export default function AuditLogs() {
             key={log.id}
             className={clsx(
               "grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3.5",
-              i !== filtered.length - 1 && "border-b border-border"
+              i !== filtered.length - 1 && "border-b border-border",
             )}
           >
-            <span className={clsx("h-1.5 w-1.5 shrink-0 rounded-full", roleDot[log.actorRole])} />
+            <span
+              className={clsx(
+                "h-1.5 w-1.5 shrink-0 rounded-full",
+                roleDot[log.actorRole],
+              )}
+            />
             <div className="min-w-0">
               <p className="truncate text-[13px] text-hi">
-                <span className="font-mono text-gold">{log.action.replaceAll("_", " ")}</span>
+                <span className="font-mono text-gold">
+                  {log.action.replaceAll("_", " ")}
+                </span>
                 <span className="text-faint"> — {log.target}</span>
               </p>
               <p className="font-mono text-[11px] text-faint">
@@ -85,7 +101,9 @@ export default function AuditLogs() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="px-5 py-10 text-center text-sm text-faint">No log entries match the current filters.</p>
+          <p className="px-5 py-10 text-center text-sm text-faint">
+            No log entries match the current filters.
+          </p>
         )}
       </div>
       <p className="mt-3 font-mono text-[11px] text-faint">

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { ShieldCheck, ShieldAlert, Download } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
-import DataTable, { type Column } from "../components/DataTable";
+import DataTable from "../components/DataTable";
+import type { Column } from "../types/Components/DataTable.types";
 import StatusBadge from "../components/StatusBadge";
 import { ToolbarSearch, FilterChip } from "../components/Toolbar";
 import { payments } from "../data/mockData";

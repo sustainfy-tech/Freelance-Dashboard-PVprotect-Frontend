@@ -9,7 +9,13 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
   );
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
   return (
     <div className="card-shadow flex flex-col items-center gap-3 rounded-md border border-danger/30 bg-danger-soft px-6 py-12 text-center">
       <AlertTriangle size={20} className="text-danger" />

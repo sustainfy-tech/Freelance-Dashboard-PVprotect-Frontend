@@ -23,11 +23,13 @@ export default function StatCell({
       <div
         className={clsx(
           "absolute -right-6 -top-6 h-24 w-24 rounded-full blur-3xl opacity-20",
-          accent === "gold" ? "bg-gold" : "bg-teal"
+          accent === "gold" ? "bg-gold" : "bg-teal",
         )}
       />
       <div className="relative flex items-start justify-between">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-lo">{label}</p>
+        <p className="font-mono text-[11px] uppercase tracking-widest text-lo">
+          {label}
+        </p>
         <Icon
           size={16}
           strokeWidth={1.75}

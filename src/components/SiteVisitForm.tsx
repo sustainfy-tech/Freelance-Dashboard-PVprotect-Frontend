@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import FormField from "../Dynamic Form/Formfield";
+import FormField from "../DynamicForm/Formfield";
 import { getActiveForm, submitSiteVisit } from "../api/forms";
-import type { ApiForm, FieldValue } from "../types/Formtypes";
+import type {
+  ApiForm,
+  FieldValue,
+} from "../types/Components/SitevisitForm.types";
 
 export default function SiteVisitForm({
   serviceId,
@@ -23,8 +26,11 @@ export default function SiteVisitForm({
       .then((f) => {
         if (!cancelled) setForm(f);
       })
-      .catch((err) => {
-        if (!cancelled) setLoadError(err.message ?? "Failed to load form.");
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const apiErr = err as { message?: string };
+          setLoadError(apiErr?.message ?? "Failed to load form.");
+        }
       });
     return () => {
       cancelled = true;
@@ -35,7 +41,8 @@ export default function SiteVisitForm({
     setAnswers((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => {
       if (!prev[name]) return prev;
-      const { [name]: _, ...rest } = prev;
+      const rest = { ...prev };
+      delete rest[name];
       return rest;
     });
   }
@@ -47,11 +54,15 @@ export default function SiteVisitForm({
     try {
       await submitSiteVisit(serviceId, bookingId, answers);
       setSubmitted(true);
-    } catch (err: any) {
-      if (err?.errors) {
-        setErrors(err.errors);
+    } catch (err: unknown) {
+      const apiErr = err as {
+        errors?: Record<string, string>;
+        message?: string;
+      };
+      if (apiErr?.errors) {
+        setErrors(apiErr.errors);
       } else {
-        setErrors({ _form: err?.message ?? "Submission failed." });
+        setErrors({ _form: apiErr?.message ?? "Submission failed." });
       }
     } finally {
       setSubmitting(false);
@@ -68,7 +79,7 @@ export default function SiteVisitForm({
 
       {form.fields.map((field) => (
         <FormField
-          key={field.name}
+          key={field.fieldId}
           serviceId={serviceId}
           field={field}
           value={answers[field.name]}

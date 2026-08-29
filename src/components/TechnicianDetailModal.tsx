@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
 import Modal from "./Modal";
-import type { ApiTechnician, ApiTechnicianDocument } from "../api/types.js";
 import { updateTechnicianStatus } from "../api/technicians.js";
-
-interface Props {
-  technician: ApiTechnician | null;
-  onClose: () => void;
-  onApproved: (id: string) => void;
-}
+import type {
+  ApiTechnicianDocument,
+  Props,
+  TechnicianRecord,
+} from "../types/Pages/Technicians.types.js";
 
 const HIDDEN_KEYS = new Set(["documents"]);
 
@@ -27,15 +25,15 @@ function formatValue(value: unknown) {
   return String(value);
 }
 
-// Normalizes whatever shape `documents` comes back as (array, object map,
-// null/undefined, or something unexpected) into a safe array to render.
 function normalizeDocuments(value: unknown): ApiTechnicianDocument[] {
   if (Array.isArray(value)) return value;
-  if (value && typeof value === "object") return Object.values(value) as ApiTechnicianDocument[];
+  if (value && typeof value === "object")
+    return Object.values(value) as ApiTechnicianDocument[];
   return [];
 }
 
-const s = (v: unknown, fallback = ""): string => (v === null || v === undefined ? fallback : String(v));
+const s = (v: unknown, fallback = ""): string =>
+  v === null || v === undefined ? fallback : String(v);
 
 export default function TechnicianDetailModal({
   technician,
@@ -46,7 +44,7 @@ export default function TechnicianDetailModal({
   const [error, setError] = useState<string | null>(null);
 
   if (!technician) return null;
-  const tech = technician as any; // tolerate either field-naming scheme below
+  const tech = technician as TechnicianRecord;
 
   const techId = s(tech.verifiedUserId ?? tech.id);
   const techName = s(tech.user_name ?? tech.name, "Technician");
@@ -72,14 +70,9 @@ export default function TechnicianDetailModal({
     }
   }
 
-  console.log('documents',documents)
+  console.log("documents", documents);
 
-const BUCKET_NAME = 'pvprotech-blogs';
-// documents.map((doc) => {
-//   const url = `https://${BUCKET_NAME}.s3.amazonaws.com/${doc.s3Key}`;
-// )}
-
-
+  const BUCKET_NAME = "pvprotech-blogs";
   return (
     <Modal title={techName} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto">
@@ -109,34 +102,34 @@ const BUCKET_NAME = 'pvprotech-blogs';
             <p className="text-sm text-faint">No documents uploaded.</p>
           ) : (
             <ul className="space-y-2">
-  {documents.map((doc, idx) => {
-    const url = doc?.s3Key
-      ? `https://${BUCKET_NAME}.s3.amazonaws.com/${doc.s3Key}`
-      : "";
+              {documents.map((doc, idx) => {
+                const url = doc?.s3Key
+                  ? `https://${BUCKET_NAME}.s3.amazonaws.com/${doc.s3Key}`
+                  : "";
 
-    return (
-      <li
-        key={doc?.id ?? doc?.s3Key ?? idx}
-        className="flex items-center justify-between border border-border px-3 py-2"
-      >
-        <span className="flex items-center gap-2 text-sm text-lo">
-          <FileText size={14} className="text-faint" />
-          {doc?.name ?? doc?.type ?? doc?.filename ?? "Document"}
-        </span>
+                return (
+                  <li
+                    key={doc?.id ?? doc?.s3Key ?? idx}
+                    className="flex items-center justify-between border border-border px-3 py-2"
+                  >
+                    <span className="flex items-center gap-2 text-sm text-lo">
+                      <FileText size={14} className="text-faint" />
+                      {doc?.name ?? doc?.type ?? doc?.filename ?? "Document"}
+                    </span>
 
-        <button
-          onClick={() =>
-            url && window.open(url, "_blank", "noopener,noreferrer")
-          }
-          disabled={!url}
-          className="border border-border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide text-lo transition-colors hover:border-gold hover:text-gold disabled:opacity-40"
-        >
-          View doc
-        </button>
-      </li>
-    );
-  })}
-</ul>
+                    <button
+                      onClick={() =>
+                        url && window.open(url, "_blank", "noopener,noreferrer")
+                      }
+                      disabled={!url}
+                      className="border border-border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide text-lo transition-colors hover:border-gold hover:text-gold disabled:opacity-40"
+                    >
+                      View doc
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
 

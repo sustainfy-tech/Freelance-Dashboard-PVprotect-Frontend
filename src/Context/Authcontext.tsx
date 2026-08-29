@@ -1,68 +1,40 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
-
-interface AdminUser {
-  email: string;
-  role: string;
-  name: string;
-}
-
-interface AuthContextValue {
-  admin: AdminUser | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+import { useEffect, useState, type ReactNode } from "react";
+import { AuthContext } from "../types/context/AuthContext.types";
+import type { AdminUser } from "../types/context/AuthContext.types";
+import { verifySession, login as loginRequest, logout as logoutRequest } from "../api/auth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function verifySession() {
+    let cancelled = false;
+
+    async function verify() {
       try {
-        const res = await fetch(`${API_BASE_URL}/admin/auth/verify`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("No valid session");
-        const json = await res.json();
-        setAdmin(json.data.admin);
+        const { admin } = await verifySession();
+        if (!cancelled) setAdmin(admin);
       } catch {
-        setAdmin(null);
+        if (!cancelled) setAdmin(null);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     }
-    verifySession();
+
+    verify();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await fetch(`${API_BASE_URL}/admin/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
-
-    const json = await res.json();
-
-    if (!res.ok || !json.success) {
-      throw new Error(json.message ?? "Login failed");
-    }
-
-    setAdmin(json.data.admin);
+    const { admin } = await loginRequest(email, password);
+    setAdmin(admin);
   }
 
   async function logout() {
     try {
-      await fetch(`${API_BASE_URL}/admin/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await logoutRequest();
     } finally {
       setAdmin(null);
     }
@@ -75,10 +47,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
-  return ctx;
 }

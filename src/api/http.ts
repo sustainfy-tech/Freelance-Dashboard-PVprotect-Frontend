@@ -1,19 +1,9 @@
-/**
- * Thin fetch wrapper used by every API module. Centralizes base URL
- * resolution, JSON handling, and error shaping so pages/components never
- * call `fetch` directly.
- *
- * Auth is handled via an httpOnly cookie set by the backend on login —
- * `credentials: "include"` ensures the browser sends it automatically.
- * The frontend never reads or attaches the token itself.
- */
+import axios, { AxiosError, type Method } from "axios";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
-
-// Mount points for the two routers you shared. Change these if your
-// Express app mounts them somewhere else, e.g. app.use('/services', ...).
-export const SERVICES_BASE = `${API_BASE_URL}/services`;
-export const ADMIN_BASE = `${API_BASE_URL}/admin`;
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const ADMIN_PREFIX = "/admin";
+const SERVICES_PREFIX = "/services";
 
 export class ApiError extends Error {
   status: number;
@@ -32,22 +22,12 @@ interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined>;
 }
 
-function buildUrl(base: string, path: string, query?: RequestOptions["query"]) {
-  const url = new URL(base + path);
-  if (query) {
-    Object.entries(query).forEach(([k, v]) => {
-      if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
-    });
-  }
-  return url.toString();
-}
-
-/**
- * The backend wraps every response as:
- *   { success: boolean, data: T, message?: string, ... }
- * This type-guards that shape so we can safely unwrap `.data` without
- * an `any` cast leaking through.
- */
+const client = axios.create({
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
@@ -64,65 +44,71 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
   );
 }
 
+function extractMessage(data: unknown, fallback: string): string {
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    typeof (data as Record<string, unknown>).message !== "undefined"
+  ) {
+    return String((data as Record<string, unknown>).message);
+  }
+  return fallback;
+}
+
 export async function apiRequest<T>(
-  base: string,
   path: string,
-  { method = "GET", body, query }: RequestOptions = {}
+  { method = "GET", body, query }: RequestOptions = {},
 ): Promise<T> {
-  const url = buildUrl(base, path, query);
+  const url = API_BASE_URL + path;
 
-  let res: Response;
   try {
-    res = await fetch(url, {
-      method,
-      credentials: "include", // sends the httpOnly admin session cookie
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+    const res = await client.request<unknown>({
+      url,
+      method: method as Method,
+      params: query,
+      data: body,
     });
+
+    const parsed = res.data;
+    if (isEnvelope(parsed)) {
+      if (parsed.success === false) {
+        const message =
+          parsed.message ?? `${method} ${url} returned success: false`;
+        throw new ApiError(message, res.status, parsed);
+      }
+      return parsed.data as T;
+    }
+
+    return parsed as T;
   } catch (err) {
-    throw new ApiError(
-      `Network error calling ${method} ${url}. Is the API running and reachable at ${API_BASE_URL}?`,
-      0,
-      err
-    );
-  }
+    if (err instanceof ApiError) throw err;
 
-  const text = await res.text();
-  const parsed = text ? safeJsonParse(text) : null;
+    if (axios.isAxiosError(err)) {
+      const axiosErr = err as AxiosError<unknown>;
+      if (!axiosErr.response) {
+        throw new ApiError(
+          `Network error calling ${method} ${url}. Is the API running and reachable at ${API_BASE_URL}?`,
+          0,
+          axiosErr,
+        );
+      }
 
-  if (!res.ok) {
-    // Session expired/invalid — bounce to login rather than showing
-    // whatever partial/broken state the page is in.
-    if (res.status === 401 && window.location.pathname !== "/login") {
-      window.location.href = "/login";
+      const { status, data: parsed } = axiosErr.response;
+
+      if (status === 401 && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+
+      const message = extractMessage(
+        parsed,
+        `${method} ${url} failed with ${status}`,
+      );
+      throw new ApiError(message, status, parsed);
     }
-
-    const message =
-      (parsed && typeof parsed === "object" && parsed !== null && "message" in parsed && String((parsed as Record<string, unknown>).message)) ||
-      `${method} ${url} failed with ${res.status}`;
-    throw new ApiError(message, res.status, parsed);
+    throw new ApiError(`${method} ${url} failed unexpectedly.`, 0, err);
   }
-
-  // Unwrap the { success, data } envelope so every api/*.ts module can
-  // keep typing its return as the actual payload (T), not the wrapper.
-  // Endpoints that don't use the envelope fall through unchanged.
-  if (isEnvelope(parsed)) {
-    if (parsed.success === false) {
-      const message = parsed.message ?? `${method} ${url} returned success: false`;
-      throw new ApiError(message, res.status, parsed);
-    }
-    return parsed.data as T;
-  }
-
-  return parsed as T;
 }
 
-function safeJsonParse(text: string) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
-}
+export const adminPath = (path: string) => `${ADMIN_PREFIX}${path}`;
+export const servicesPath = (path: string) => `${SERVICES_PREFIX}${path}`;

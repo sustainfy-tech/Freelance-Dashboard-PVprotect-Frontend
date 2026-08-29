@@ -21,7 +21,7 @@ const statusToneMap: Record<string, Tone> = {
   available: "teal",
   on_job: "gold",
   off_duty: "neutral",
-suspended: "danger",
+  suspended: "danger",
   active: "teal",
   inactive: "neutral",
   pending: "gold",
@@ -50,7 +50,7 @@ export default function StatusBadge({ status }: { status: string }) {
     <span
       className={clsx(
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-mono font-medium uppercase tracking-wide",
-        toneClasses[tone]
+        toneClasses[tone],
       )}
     >
       <span

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
-// import StatusBadge from "../components/StatusBadge.js";
 import { ToolbarSearch } from "../components/Toolbar";
 import { listTechniciansForAdmin } from "../api/technicians.js";
-import type { ApiAppUser } from "../api/types";
+import type { ApiAppUser } from "../types/Pages/Client.types.js";
+import type { ClientRow } from "../types/Pages/Client.types.js";
 import PlantsList from "../components/Plantslist.js";
 
 function currency(n?: number) {
@@ -17,18 +17,48 @@ function formatDate(d?: string | null) {
   if (!d) return "—";
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-interface ClientRow {
-  id: string;
-  name: string;
-  email: string;
-  contact: string;
-  plants?: number;
-  joined?: string;
-  payment?: number;
-  status?: string;
+async function loadClientRows(): Promise<ClientRow[]> {
+  const response = (await listTechniciansForAdmin()) as unknown as
+    | ApiAppUser[]
+    | { technicians?: ApiAppUser[] }
+    | { data?: { technicians?: ApiAppUser[] } };
+
+  const users: ApiAppUser[] = Array.isArray(response)
+    ? response
+    : ((response as { technicians?: ApiAppUser[] })?.technicians ??
+      (response as { data?: { technicians?: ApiAppUser[] } })?.data
+        ?.technicians ??
+      []);
+
+  return users
+    .filter((u) => (u.role ?? "").toLowerCase() === "client")
+    .map((u, idx) => {
+      const rawPayment = (u as unknown as { payment?: number | string })
+        .payment;
+      const payment =
+        typeof rawPayment === "number"
+          ? rawPayment
+          : typeof rawPayment === "string" && rawPayment.trim() !== ""
+            ? Number(rawPayment)
+            : undefined;
+      return {
+        id: u.verifiedUserId ?? String(idx),
+        name: u.user_name ?? "—",
+        email: u.user_email ?? "—",
+        contact: u.contact_number ?? "—",
+        plants: typeof u.plants === "number" ? u.plants : undefined,
+        joined: u.createdAt,
+        payment: Number.isFinite(payment) ? payment : undefined,
+        status: u.status ?? "—",
+      };
+    });
 }
 
 export default function Clients() {
@@ -37,47 +67,15 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [plantsModalClient, setPlantsModalClient] = useState<ClientRow | null>(null);
+  const [plantsModalClient, setPlantsModalClient] = useState<ClientRow | null>(
+    null,
+  );
 
   const fetchClients = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = (await listTechniciansForAdmin()) as unknown as
-        | ApiAppUser[]
-        | { technicians?: ApiAppUser[] }
-        | { data?: { technicians?: ApiAppUser[] } };
-
-      const users: ApiAppUser[] = Array.isArray(response)
-        ? response
-        : (response as { technicians?: ApiAppUser[] })?.technicians ??
-          (response as { data?: { technicians?: ApiAppUser[] } })?.data?.technicians ??
-          [];
-
-      const clientRows: ClientRow[] = users
-        .filter((u) => (u.role ?? "").toLowerCase() === "client")
-        .map((u, idx) => {
-          // The backend returns `payment` as a string (e.g. "52000"), not a
-          // number — normalize it here so currency() gets a real number.
-          const rawPayment = (u as unknown as { payment?: number | string }).payment;
-          const payment =
-            typeof rawPayment === "number"
-              ? rawPayment
-              : typeof rawPayment === "string" && rawPayment.trim() !== ""
-                ? Number(rawPayment)
-                : undefined;
-          return {
-            id: u.verifiedUserId ?? String(idx),
-            name: u.user_name ?? "—",
-            email: u.user_email ?? "—",
-            contact: u.contact_number ?? "—",
-            plants: typeof u.plants === "number" ? u.plants : undefined,
-            joined: u.createdAt,
-            payment: Number.isFinite(payment) ? payment : undefined,
-            status: u.status ?? "—",
-          };
-        });
-
+      const clientRows = await loadClientRows();
       setRows(clientRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch clients");
@@ -87,7 +85,26 @@ export default function Clients() {
   };
 
   useEffect(() => {
-    fetchClients();
+    let ignore = false;
+
+    loadClientRows()
+      .then((clientRows) => {
+        if (!ignore) setRows(clientRows);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(
+            err instanceof Error ? err.message : "Failed to fetch clients",
+          );
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const closePlantsModal = () => setPlantsModalClient(null);
@@ -100,7 +117,7 @@ export default function Clients() {
         c.name.toLowerCase().includes(q) ||
         c.contact.toLowerCase().includes(q) ||
         c.email.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q)
+        c.id.toLowerCase().includes(q),
     );
   }, [query, rows]);
 
@@ -136,16 +153,16 @@ export default function Clients() {
     },
     {
       header: "Joined",
-      accessor: (c) => <span className="font-mono text-[12px] text-lo">{formatDate(c.joined)}</span>,
+      accessor: (c) => (
+        <span className="font-mono text-[12px] text-lo">
+          {formatDate(c.joined)}
+        </span>
+      ),
     },
     {
       header: "Value",
       accessor: (c) => <span className="font-mono">{currency(c.payment)}</span>,
     },
-    // {
-    //   header: "Status",
-    //   accessor: (c) => <StatusBadge status={c.status ?? "—"} />,
-    // },
   ];
 
   return (
@@ -161,24 +178,32 @@ export default function Clients() {
               disabled={loading}
               className="flex items-center gap-1.5 rounded-sm border border-white/10 px-3.5 py-2 font-mono text-[11px] font-medium uppercase tracking-wide text-lo transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />{" "}
+              Refresh
             </button>
-           
           </div>
         }
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search name, email, contact, ID…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search name, email, contact, ID…"
+        />
       </div>
 
       {error && (
-        <p className="mb-3 font-mono text-[11px] text-red-400">Failed to load clients: {error}</p>
+        <p className="mb-3 font-mono text-[11px] text-red-400">
+          Failed to load clients: {error}
+        </p>
       )}
 
       <DataTable columns={columns} rows={filtered} rowKey={(c) => c.id} />
       <p className="mt-3 font-mono text-[11px] text-faint">
-        {loading ? "Loading…" : `Showing ${filtered.length} of ${rows.length} clients`}
+        {loading
+          ? "Loading…"
+          : `Showing ${filtered.length} of ${rows.length} clients`}
       </p>
 
       {plantsModalClient && (
@@ -186,16 +211,26 @@ export default function Clients() {
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-5">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-wide text-faint">Plants</p>
+                <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
+                  Plants
+                </p>
                 <p className="text-hi">{plantsModalClient.name}</p>
-                <p className="font-mono text-[11px] text-faint">{plantsModalClient.id}</p>
+                <p className="font-mono text-[11px] text-faint">
+                  {plantsModalClient.id}
+                </p>
               </div>
-              <button onClick={closePlantsModal} className="text-faint hover:text-hi">
+              <button
+                onClick={closePlantsModal}
+                className="text-faint hover:text-hi"
+              >
                 <X size={18} />
               </button>
             </div>
 
-            <PlantsList clientId={plantsModalClient.id} clientName={plantsModalClient.name} />
+            <PlantsList
+              clientId={plantsModalClient.id}
+              clientName={plantsModalClient.name}
+            />
           </div>
         </div>
       )}

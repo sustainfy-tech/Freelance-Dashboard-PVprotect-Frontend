@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Bell, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../Context/Authcontext";
+import { useAuth } from "../Context/useAuth";
 
 function getInitials(name?: string, email?: string) {
   if (name && name.trim()) {
     const parts = name.trim().split(/\s+/);
-    const initials = parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}` : parts[0].slice(0, 2);
+    const initials =
+      parts.length > 1
+        ? `${parts[0][0]}${parts[parts.length - 1][0]}`
+        : parts[0].slice(0, 2);
     return initials.toUpperCase();
   }
   if (email) return email.slice(0, 2).toUpperCase();
@@ -35,7 +38,9 @@ export default function Topbar() {
   }
 
   const displayName = admin?.name || admin?.name || "Admin";
-  const displayRole = admin?.email ? admin.email.replace(/\b\w/g, (c) => c.toLowerCase()) : "Admin";
+  const displayRole = admin?.email
+    ? admin.email.replace(/\b\w/g, (c) => c.toLowerCase())
+    : "Admin";
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-bg/90 px-8 backdrop-blur">
@@ -53,7 +58,10 @@ export default function Topbar() {
       </div>
 
       <div className="flex items-center gap-5">
-        <button className="relative text-lo transition-colors hover:text-hi" aria-label="Notifications">
+        <button
+          className="relative text-lo transition-colors hover:text-hi"
+          aria-label="Notifications"
+        >
           <Bell size={17} strokeWidth={1.75} />
           <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-danger" />
         </button>
@@ -69,10 +77,14 @@ export default function Topbar() {
               {getInitials(admin?.name, admin?.email)}
             </div>
             <div className="text-left leading-tight">
-              <p className="text-[13px] font-medium font-['Times_New_Roman'] text-hi">{displayName}</p>
-              <p className="text-[10px] font-['Times_New_Roman'] lowecase tracking-wide text-faint">{displayRole}</p>
+              <p className="text-[13px] font-medium font-['Times_New_Roman'] text-hi">
+                {displayName}
+              </p>
+              <p className="text-[10px] font-['Times_New_Roman'] lowecase tracking-wide text-faint">
+                {displayRole}
+              </p>
             </div>
-          </button> 
+          </button>
 
           {menuOpen && (
             <div className="absolute right-0 top-full mt-2 w-44 rounded-sm border border-border bg-surface py-1 shadow-lg">

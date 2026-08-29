@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCw, Star } from "lucide-react";
+import { RefreshCw, Star } from "lucide-react";
 import clsx from "clsx";
 import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
 import StatusBadge from "../components/StatusBadge";
 import { ToolbarSearch, FilterChip } from "../components/Toolbar";
 import TechnicianDetailModal from "../components/TechnicianDetailModal";
-import { listAllTechnicians, listTechnicianRequests } from "../api/technicians.js";
-import type { ApiTechnician, ApprovalStatus } from "../api/types.js";
-
-type Tab = "technicians" | "requests";
+import {
+  listAllTechnicians,
+  listTechnicianRequests,
+} from "../api/technicians.js";
+import type {
+  Tab,
+  TechniciansResponse,
+  TechniciansEnvelope,
+  ApprovalStatus,
+  ApiTechnician,
+} from "../types/Pages/Technicians.types";
 
 const technicianFilters: { label: string; value: string }[] = [
   { label: "All", value: "all" },
@@ -19,30 +26,24 @@ const technicianFilters: { label: string; value: string }[] = [
   { label: "Suspended", value: "suspended" },
 ];
 
-// Requests are always scoped to submit_for_review, so this filter is now
-// just a search-status no-op kept for UI symmetry (all rows already match).
-const requestFilters: { label: string; value: ApprovalStatus | "all" }[] = [
-  // { label: "All", value: "all" },
-  // { label: "Training completed", value: "submit_for_review" },
-];
+const requestFilters: { label: string; value: ApprovalStatus | "all" }[] = [];
 
-const s = (v: unknown, fallback = ""): string => (v === null || v === undefined ? fallback : String(v));
+const s = (v: unknown, fallback = ""): string =>
+  v === null || v === undefined ? fallback : String(v);
 const n = (v: unknown, fallback = 0): number => {
   const num = Number(v);
   return Number.isFinite(num) ? num : fallback;
 };
 
-// Normalizes whatever shape the backend wraps the array in
-// ({ data: { technicians } }, { technicians }, { data }, or a bare array).
-function extractList(response: unknown): ApiTechnician[] {
-  const r = response as any;
-  return (
-    (Array.isArray(r?.data?.technicians) && r.data.technicians) ||
-    (Array.isArray(r?.technicians) && r.technicians) ||
-    (Array.isArray(r?.data) && r.data) ||
-    (Array.isArray(r) && r) ||
-    []
-  );
+function extractList(response: TechniciansResponse): ApiTechnician[] {
+  const r = response as
+    | TechniciansEnvelope
+    | ApiTechnician[]
+    | null
+    | undefined;
+  console.log("r", r);
+  if (Array.isArray(r)) return r;
+  return (Array.isArray(r?.data?.technicians) && r.data.technicians) || [];
 }
 
 export default function Technicians() {
@@ -61,7 +62,6 @@ export default function Technicians() {
 
   const [selected, setSelected] = useState<ApiTechnician | null>(null);
 
-  // Technicians tab: every technician, regardless of approval status.
   async function fetchAllTechnicians() {
     setAllLoading(true);
     setAllError(null);
@@ -69,14 +69,14 @@ export default function Technicians() {
       const response = await listAllTechnicians();
       setAllTechnicians(extractList(response));
     } catch (err) {
-      setAllError(err instanceof Error ? err.message : "Failed to load technicians");
+      setAllError(
+        err instanceof Error ? err.message : "Failed to load technicians",
+      );
     } finally {
       setAllLoading(false);
     }
   }
 
-  // Requests tab: technicians who have completed training and are awaiting
-  // approval — fetched from its own dedicated endpoint.
   async function fetchRequests() {
     setRequestsLoading(true);
     setRequestsError(null);
@@ -84,7 +84,9 @@ export default function Technicians() {
       const response = await listTechnicianRequests();
       setRequests(extractList(response));
     } catch (err) {
-      setRequestsError(err instanceof Error ? err.message : "Failed to load requests");
+      setRequestsError(
+        err instanceof Error ? err.message : "Failed to load requests",
+      );
     } finally {
       setRequestsLoading(false);
     }
@@ -100,7 +102,10 @@ export default function Technicians() {
         if (cancelled) return;
         setAllTechnicians(extractList(response));
       } catch (err) {
-        if (!cancelled) setAllError(err instanceof Error ? err.message : "Failed to load technicians");
+        if (!cancelled)
+          setAllError(
+            err instanceof Error ? err.message : "Failed to load technicians",
+          );
       } finally {
         if (!cancelled) setAllLoading(false);
       }
@@ -120,7 +125,10 @@ export default function Technicians() {
         if (cancelled) return;
         setRequests(extractList(response));
       } catch (err) {
-        if (!cancelled) setRequestsError(err instanceof Error ? err.message : "Failed to load requests");
+        if (!cancelled)
+          setRequestsError(
+            err instanceof Error ? err.message : "Failed to load requests",
+          );
       } finally {
         if (!cancelled) setRequestsLoading(false);
       }
@@ -130,7 +138,6 @@ export default function Technicians() {
     };
   }, []);
 
-  // Refresh button calls whichever tab's fetch function is currently active.
   function handleRefresh() {
     if (tab === "technicians") {
       fetchAllTechnicians();
@@ -166,12 +173,14 @@ export default function Technicians() {
     });
   }, [requests, reqStatus, query]);
 
-  // On approval: remove the technician from the requests list (they're no
-  // longer pending) and reflect the new status in the all-technicians list.
   function handleApproved(id: string) {
     setRequests((prev) => prev.filter((t) => s(t.verifiedUserId) !== id));
     setAllTechnicians((prev) =>
-      prev.map((t) => (s(t.verifiedUserId) === id ? { ...t, status: "approved" as ApprovalStatus } : t)),
+      prev.map((t) =>
+        s(t.verifiedUserId) === id
+          ? { ...t, status: "approved" as ApprovalStatus }
+          : t,
+      ),
     );
   }
 
@@ -181,7 +190,9 @@ export default function Technicians() {
       accessor: (t) => (
         <div>
           <p className="text-hi">{s(t.user_name)}</p>
-          <p className="font-mono text-[11px] text-faint">{s(t.verifiedUserId)}</p>
+          <p className="font-mono text-[11px] text-faint">
+            {s(t.verifiedUserId)}
+          </p>
         </div>
       ),
     },
@@ -190,16 +201,22 @@ export default function Technicians() {
       accessor: (t) => (
         <div>
           <p className="text-lo">{s(t.user_email)}</p>
-          <p className="font-mono text-[11px] text-faint">{s(t.contact_number)}</p>
+          <p className="font-mono text-[11px] text-faint">
+            {s(t.contact_number)}
+          </p>
         </div>
       ),
     },
-    { header: "Zone", accessor: (t) => <span className="text-lo">{s(t.zone, "—")}</span> },
+    {
+      header: "Zone",
+      accessor: (t) => <span className="text-lo">{s(t.zone, "—")}</span>,
+    },
     {
       header: "Rating",
       accessor: (t) => (
         <span className="flex items-center gap-1 font-mono">
-          <Star size={12} className="fill-gold text-gold" /> {n(t.rating).toFixed(1)}
+          <Star size={12} className="fill-gold text-gold" />{" "}
+          {n(t.rating).toFixed(1)}
         </span>
       ),
     },
@@ -213,7 +230,13 @@ export default function Technicians() {
         const date = s(t.activeSince) || s(t.createdAt);
         return (
           <span className="font-mono text-[12px] text-lo">
-            {date ? new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+            {date
+              ? new Date(date).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "—"}
           </span>
         );
       },
@@ -222,7 +245,12 @@ export default function Technicians() {
       header: "Approval",
       accessor: (t) => <StatusBadge status={s(t.status, "pending")} />,
     },
-    { header: "Availability", accessor: (t) => <StatusBadge status={s(t.availabilityStatus, "off_duty")} /> },
+    {
+      header: "Availability",
+      accessor: (t) => (
+        <StatusBadge status={s(t.availabilityStatus, "off_duty")} />
+      ),
+    },
   ];
 
   const requestColumns: Column<ApiTechnician>[] = [
@@ -231,7 +259,9 @@ export default function Technicians() {
       accessor: (t) => (
         <div>
           <p className="text-hi">{s(t.user_name)}</p>
-          <p className="font-mono text-[11px] text-faint">{s(t.verifiedUserId)}</p>
+          <p className="font-mono text-[11px] text-faint">
+            {s(t.verifiedUserId)}
+          </p>
         </div>
       ),
     },
@@ -240,11 +270,16 @@ export default function Technicians() {
       accessor: (t) => (
         <div>
           <p className="text-lo">{s(t.user_email)}</p>
-          <p className="font-mono text-[11px] text-faint">{s(t.contact_number)}</p>
+          <p className="font-mono text-[11px] text-faint">
+            {s(t.contact_number)}
+          </p>
         </div>
       ),
     },
-    { header: "Zone", accessor: (t) => <span className="text-lo">{s(t.zone, "—")}</span> },
+    {
+      header: "Zone",
+      accessor: (t) => <span className="text-lo">{s(t.zone, "—")}</span>,
+    },
     { header: "Status", accessor: (t) => <StatusBadge status={s(t.status)} /> },
     {
       header: "",
@@ -292,7 +327,9 @@ export default function Technicians() {
         <button
           onClick={() => setTab("technicians")}
           className={`px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
-            tab === "technicians" ? "border-b-2 border-gold text-hi" : "text-faint hover:text-lo"
+            tab === "technicians"
+              ? "border-b-2 border-gold text-hi"
+              : "text-faint hover:text-lo"
           }`}
         >
           Technicians ({allTechnicians.length})
@@ -300,7 +337,9 @@ export default function Technicians() {
         <button
           onClick={() => setTab("requests")}
           className={`px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
-            tab === "requests" ? "border-b-2 border-gold text-hi" : "text-faint hover:text-lo"
+            tab === "requests"
+              ? "border-b-2 border-gold text-hi"
+              : "text-faint hover:text-lo"
           }`}
         >
           Requests ({requests.length})
@@ -308,14 +347,28 @@ export default function Technicians() {
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search name, zone, ID…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search name, zone, ID…"
+        />
         <div className="flex flex-wrap gap-2">
           {tab === "technicians"
             ? technicianFilters.map((f) => (
-                <FilterChip key={f.value} label={f.label} active={techStatus === f.value} onClick={() => setTechStatus(f.value)} />
+                <FilterChip
+                  key={f.value}
+                  label={f.label}
+                  active={techStatus === f.value}
+                  onClick={() => setTechStatus(f.value)}
+                />
               ))
             : requestFilters.map((f) => (
-                <FilterChip key={f.value} label={f.label} active={reqStatus === f.value} onClick={() => setReqStatus(f.value)} />
+                <FilterChip
+                  key={f.value}
+                  label={f.label}
+                  active={reqStatus === f.value}
+                  onClick={() => setReqStatus(f.value)}
+                />
               ))}
         </div>
       </div>
@@ -330,21 +383,34 @@ export default function Technicians() {
         <p className="font-mono text-[12px] text-faint">Loading…</p>
       ) : tab === "technicians" ? (
         <>
-          <DataTable columns={technicianColumns} rows={filteredTechnicians} rowKey={(t) => s(t.verifiedUserId)} />
+          <DataTable
+            columns={technicianColumns}
+            rows={filteredTechnicians}
+            rowKey={(t) => s(t.verifiedUserId)}
+          />
           <p className="mt-3 font-mono text-[11px] text-faint">
-            Showing {filteredTechnicians.length} of {allTechnicians.length} technicians
+            Showing {filteredTechnicians.length} of {allTechnicians.length}{" "}
+            technicians
           </p>
         </>
       ) : (
         <>
-          <DataTable columns={requestColumns} rows={filteredRequests} rowKey={(t) => s(t.verifiedUserId)} />
+          <DataTable
+            columns={requestColumns}
+            rows={filteredRequests}
+            rowKey={(t) => s(t.verifiedUserId)}
+          />
           <p className="mt-3 font-mono text-[11px] text-faint">
             Showing {filteredRequests.length} of {requests.length} requests
           </p>
         </>
       )}
 
-      <TechnicianDetailModal technician={selected} onClose={() => setSelected(null)} onApproved={handleApproved} />
+      <TechnicianDetailModal
+        technician={selected}
+        onClose={() => setSelected(null)}
+        onApproved={handleApproved}
+      />
     </div>
   );
 }

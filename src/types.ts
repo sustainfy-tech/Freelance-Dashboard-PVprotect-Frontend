@@ -6,7 +6,18 @@ export type BookingStatus =
   | "completed"
   | "payment_pending"
   | "closed"
+  | "work_in_progress"
   | "rejected";
+
+  export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  actorRole: "client" | "technician" | "admin" | "system";
+  action: string;
+  target: string;
+  timestamp: string;
+  correlationId: string;
+}
 
 export type PaymentStatus = "pending" | "received" | "otp_verified" | "verified" | "failed";
 
@@ -75,15 +86,7 @@ export interface Payment {
   date: string;
 }
 
-export interface AuditLogEntry {
-  id: string;
-  actor: string;
-  actorRole: "client" | "technician" | "admin" | "system";
-  action: string;
-  target: string;
-  timestamp: string;
-  correlationId: string;
-}
+
 
 export interface RevenuePoint {
   month: string;

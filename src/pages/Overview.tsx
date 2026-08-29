@@ -11,7 +11,13 @@ import {
   Bar,
   Cell,
 } from "recharts";
-import { IndianRupee, CalendarClock, Sun, HardHat, ArrowUpRight } from "lucide-react";
+import {
+  IndianRupee,
+  CalendarClock,
+  Sun,
+  HardHat,
+  ArrowUpRight,
+} from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import StatCell from "../components/StatCell";
 import StatusBadge from "../components/StatusBadge";
@@ -24,7 +30,8 @@ import {
   auditLogs,
 } from "../data/mockData";
 
-const BOOKING_REQUESTS_URL = "http://localhost:8000/api/v1/admin/bookings/requests";
+const BOOKING_REQUESTS_URL =
+  "http://localhost:8000/api/v1/admin/bookings/requests";
 
 type Booking = {
   id: string;
@@ -51,16 +58,19 @@ export default function Overview() {
       try {
         const res = await fetch(BOOKING_REQUESTS_URL, {
           headers: { "Content-Type": "application/json" },
-          // credentials: "include", // enable if the admin route relies on a session cookie
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
         // Handles either a raw array response or { bookings: [...] }
-        const list: Booking[] = Array.isArray(data) ? data : data.bookings ?? [];
+        const list: Booking[] = Array.isArray(data)
+          ? data
+          : (data.bookings ?? []);
         if (!cancelled) setBookings(list);
       } catch (err) {
         if (!cancelled) {
-          setBookingsError(err instanceof Error ? err.message : "Failed to load bookings");
+          setBookingsError(
+            err instanceof Error ? err.message : "Failed to load bookings",
+          );
           setBookings(mockBookings); // fall back so the UI still renders something
         }
       } finally {
@@ -75,9 +85,11 @@ export default function Overview() {
   }, []);
 
   const activeBookings = bookings.filter((b) =>
-    ["assigned", "en_route", "in_progress"].includes(b.status)
+    ["assigned", "en_route", "in_progress"].includes(b.status),
   ).length;
-  const availableTechs = technicians.filter((t) => t.status === "available").length;
+  const availableTechs = technicians.filter(
+    (t) => t.status === "available",
+  ).length;
   const monthRevenue = revenueSeries[revenueSeries.length - 1].revenue;
   const totalCapacity = plants.reduce((s, p) => s + p.capacityKw, 0);
 
@@ -142,7 +154,10 @@ export default function Overview() {
             </span>
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={revenueSeries} margin={{ top: 24, right: 8, left: -16, bottom: 0 }}>
+            <AreaChart
+              data={revenueSeries}
+              margin={{ top: 24, right: 8, left: -16, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#E3A542" stopOpacity={0.35} />
@@ -153,13 +168,21 @@ export default function Overview() {
               <XAxis
                 dataKey="month"
                 stroke="#5B6572"
-                tick={{ fill: "#9AA5B1", fontSize: 11, fontFamily: "JetBrains Mono" }}
+                tick={{
+                  fill: "#9AA5B1",
+                  fontSize: 11,
+                  fontFamily: "JetBrains Mono",
+                }}
                 axisLine={{ stroke: "#232D37" }}
                 tickLine={false}
               />
               <YAxis
                 stroke="#5B6572"
-                tick={{ fill: "#9AA5B1", fontSize: 11, fontFamily: "JetBrains Mono" }}
+                tick={{
+                  fill: "#9AA5B1",
+                  fontSize: 11,
+                  fontFamily: "JetBrains Mono",
+                }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `₹${v / 1000}k`}
@@ -224,7 +247,10 @@ export default function Overview() {
           </ResponsiveContainer>
           <div className="mt-2 space-y-1.5">
             {bookingStatusBreakdown.map((s) => (
-              <div key={s.status} className="flex items-center justify-between text-[11px]">
+              <div
+                key={s.status}
+                className="flex items-center justify-between text-[11px]"
+              >
                 <span className="flex items-center gap-1.5 text-lo">
                   <span
                     className="h-1.5 w-1.5 rounded-full"
@@ -245,15 +271,20 @@ export default function Overview() {
             Bookings needing attention
           </p>
           {bookingsLoading ? (
-            <p className="font-mono text-[11px] text-faint">Loading booking requests…</p>
+            <p className="font-mono text-[11px] text-faint">
+              Loading booking requests…
+            </p>
           ) : bookingsError ? (
             <p className="font-mono text-[11px] text-red-400">
-              Couldn't load live requests ({bookingsError}) — showing cached data.
+              Couldn't load live requests ({bookingsError}) — showing cached
+              data.
             </p>
           ) : null}
           <div className="space-y-2">
             {bookings
-              .filter((b) => ["requested", "payment_pending", "rejected"].includes(b.status))
+              .filter((b) =>
+                ["requested", "payment_pending", "rejected"].includes(b.status),
+              )
               .map((b) => (
                 <div
                   key={b.id}
@@ -263,7 +294,9 @@ export default function Overview() {
                     <p className="text-[13px] font-medium text-hi">
                       {b.id} · {b.plantName}
                     </p>
-                    <p className="font-mono text-[11px] text-faint">{b.clientName}</p>
+                    <p className="font-mono text-[11px] text-faint">
+                      {b.clientName}
+                    </p>
                   </div>
                   <StatusBadge status={b.status} />
                 </div>
@@ -278,9 +311,12 @@ export default function Overview() {
           <div className="space-y-4">
             {auditLogs.slice(0, 5).map((log) => (
               <div key={log.id} className="border-l-2 border-gold-dim/50 pl-3">
-                <p className="text-[12.5px] text-hi">{log.action.replaceAll("_", " ")}</p>
+                <p className="text-[12.5px] text-hi">
+                  {log.action.replaceAll("_", " ")}
+                </p>
                 <p className="font-mono text-[10.5px] text-faint">
-                  {log.actor} · {new Date(log.timestamp).toLocaleTimeString("en-IN", {
+                  {log.actor} ·{" "}
+                  {new Date(log.timestamp).toLocaleTimeString("en-IN", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

@@ -8,7 +8,7 @@ export default function Layout() {
       <Sidebar />
       <div className="pl-64">
         <Topbar />
-        <main className="mx-auto max-w-[1400px] px-8 py-8">
+        <main className="mx-auto max-w-350 px-8 py-8">
           <Outlet />
         </main>
       </div>

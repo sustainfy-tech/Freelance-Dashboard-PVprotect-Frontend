@@ -1,26 +1,19 @@
-import { useEffect, useMemo, useState, useRef } from "react";
-import { Plus, X, RefreshCw, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, startTransition } from "react";
+import { X, RefreshCw, MapPin } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
-import DataTable, { type Column } from "../components/DataTable";
+import DataTable from "../components/DataTable";
+import type { Column } from "../types/Components/DataTable.types";
 import { ToolbarSearch } from "../components/Toolbar";
 import clsx from "clsx";
-
-interface ApiPlant {
-  capacityKw: number;
-  plantId: string;
-  lastServiceDate: string | null;
-  plantname: string;
-  installDate: string;
-  updatedAt: string;
-  userId: string;
-  status: string;
-  longitude: number;
-  createdAt: string;
-  address: string;
-  latitude: number;
-}
-
-const API_URL = "http://localhost:8000/api/v1/plants/list";
+import type {
+  ApiPlant,
+  PlantDetailModalProps,
+  PlantMapModalProps,
+  LeafletStatic,
+  LeafletMap,
+} from "../types/Pages/Plant.types";
+import { listPlants } from "../api/plant";
+import { ApiError } from "../api/http";
 
 const LEAFLET_CSS_ID = "leaflet-css-cdn";
 const LEAFLET_JS_ID = "leaflet-js-cdn";
@@ -38,7 +31,11 @@ function statusTone(status: string) {
 
 function formatDate(value: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(value).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function formatDateTime(value: string | null) {
@@ -52,8 +49,19 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function escapeHtml(value: string) {
+  const div = document.createElement("div");
+  div.textContent = value;
+  return div.innerHTML;
+}
+
 function hasCoords(p: ApiPlant) {
-  return typeof p.latitude === "number" && typeof p.longitude === "number" && !Number.isNaN(p.latitude) && !Number.isNaN(p.longitude);
+  return (
+    typeof p.latitude === "number" &&
+    typeof p.longitude === "number" &&
+    !Number.isNaN(p.latitude) &&
+    !Number.isNaN(p.longitude)
+  );
 }
 
 export default function Plants() {
@@ -70,13 +78,10 @@ export default function Plants() {
     else setLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
-      const json = await res.json();
-      if (!json.success) throw new Error("API returned success: false");
-      setPlants(json.data as ApiPlant[]);
+      const data = await listPlants();
+      setPlants(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load plants");
+      setError(err instanceof ApiError ? err.message : "Failed to load plants");
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);
@@ -84,7 +89,9 @@ export default function Plants() {
   }
 
   useEffect(() => {
-    fetchPlants();
+    startTransition(() => {
+      fetchPlants();
+    });
   }, []);
 
   const filtered = useMemo(() => {
@@ -94,7 +101,7 @@ export default function Plants() {
         !q ||
         p.plantname.toLowerCase().includes(q) ||
         p.address.toLowerCase().includes(q) ||
-        p.plantId.toLowerCase().includes(q)
+        p.plantId.toLowerCase().includes(q),
     );
   }, [plants, query]);
 
@@ -107,25 +114,42 @@ export default function Plants() {
           onClick={() => setSelectedPlant(p)}
           className="text-left hover:opacity-80 cursor-pointer"
         >
-          <p className="text-hi underline-offset-2 hover:underline">{p.plantname}</p>
-          <p className="font-mono text-[11px] text-faint">{p.plantId.slice(0,8)}</p>
+          <p className="text-hi underline-offset-2 hover:underline">
+            {p.plantname}
+          </p>
+          <p className="font-mono text-[11px] text-faint">
+            {p.plantId.slice(0, 8)}
+          </p>
         </button>
       ),
     },
-    { header: "Address", accessor: (p) => <span className="text-lo">{p.address}</span> },
+    {
+      header: "Address",
+      accessor: (p) => <span className="text-lo">{p.address}</span>,
+    },
     {
       header: "Capacity",
       accessor: (p) => (
-        <span className="font-mono">{p.capacityKw.toLocaleString("en-IN")} kW</span>
+        <span className="font-mono">
+          {p.capacityKw.toLocaleString("en-IN")} kW
+        </span>
       ),
     },
     {
       header: "Install date",
-      accessor: (p) => <span className="font-mono text-[12px] text-lo">{formatDate(p.installDate)}</span>,
+      accessor: (p) => (
+        <span className="font-mono text-[12px] text-lo">
+          {formatDate(p.installDate)}
+        </span>
+      ),
     },
     {
       header: "Last serviced",
-      accessor: (p) => <span className="font-mono text-[12px] text-lo">{formatDate(p.lastServiceDate)}</span>,
+      accessor: (p) => (
+        <span className="font-mono text-[12px] text-lo">
+          {formatDate(p.lastServiceDate)}
+        </span>
+      ),
     },
     {
       header: "Location",
@@ -146,9 +170,16 @@ export default function Plants() {
     {
       header: "Status",
       accessor: (p) => (
-        <span className={clsx("font-mono text-[12px] capitalize", statusTone(p.status))}>{p.status}</span>
+        <span
+          className={clsx(
+            "font-mono text-[12px] capitalize",
+            statusTone(p.status),
+          )}
+        >
+          {p.status}
+        </span>
       ),
-    }
+    },
   ];
 
   return (
@@ -165,16 +196,22 @@ export default function Plants() {
               disabled={refreshing || loading}
               className="flex items-center gap-1.5 rounded-sm border border-surface3 px-3.5 py-2 font-mono text-[11px] font-medium uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-50"
             >
-              <RefreshCw size={14} className={clsx(refreshing && "animate-spin")} />
+              <RefreshCw
+                size={14}
+                className={clsx(refreshing && "animate-spin")}
+              />
               Refresh
             </button>
-            
           </div>
         }
       />
 
       <div className="mb-4">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search plant, address, ID…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search plant, address, ID…"
+        />
       </div>
 
       {error && (
@@ -187,7 +224,11 @@ export default function Plants() {
         <p className="font-mono text-[12px] text-faint">Loading plants…</p>
       ) : (
         <>
-          <DataTable columns={columns} rows={filtered} rowKey={(p) => p.plantId} />
+          <DataTable
+            columns={columns}
+            rows={filtered}
+            rowKey={(p) => p.plantId}
+          />
           <p className="mt-3 font-mono text-[11px] text-faint">
             Showing {filtered.length} of {plants.length} plants
           </p>
@@ -195,15 +236,20 @@ export default function Plants() {
       )}
 
       {selectedPlant && (
-        <PlantDetailModal plant={selectedPlant} onClose={() => setSelectedPlant(null)} />
+        <PlantDetailModal
+          plant={selectedPlant}
+          onClose={() => setSelectedPlant(null)}
+        />
       )}
 
-      {mapPlant && <PlantMapModal plant={mapPlant} onClose={() => setMapPlant(null)} />}
+      {mapPlant && (
+        <PlantMapModal plant={mapPlant} onClose={() => setMapPlant(null)} />
+      )}
     </div>
   );
 }
 
-function PlantDetailModal({ plant, onClose }: { plant: ApiPlant; onClose: () => void }) {
+function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -217,7 +263,10 @@ function PlantDetailModal({ plant, onClose }: { plant: ApiPlant; onClose: () => 
     { label: "Plant name", value: plant.plantname },
     { label: "User ID", value: plant.userId },
     { label: "Address", value: plant.address },
-    { label: "Capacity", value: `${plant.capacityKw.toLocaleString("en-IN")} kW` },
+    {
+      label: "Capacity",
+      value: `${plant.capacityKw.toLocaleString("en-IN")} kW`,
+    },
     { label: "Status", value: plant.status },
     { label: "Install date", value: formatDateTime(plant.installDate) },
     { label: "Last serviced", value: formatDateTime(plant.lastServiceDate) },
@@ -236,7 +285,9 @@ function PlantDetailModal({ plant, onClose }: { plant: ApiPlant; onClose: () => 
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-wide text-faint">Plant details</p>
+            <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
+              Plant details
+            </p>
             <h3 className="text-hi text-lg">{plant.plantname}</h3>
           </div>
           <button
@@ -250,9 +301,16 @@ function PlantDetailModal({ plant, onClose }: { plant: ApiPlant; onClose: () => 
 
         <div className="space-y-2">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between gap-4 border-b border-surface3 py-1.5 last:border-b-0">
-              <span className="font-mono text-[11px] uppercase tracking-wide text-faint">{r.label}</span>
-              <span className="text-right font-mono text-[12px] text-lo">{r.value}</span>
+            <div
+              key={r.label}
+              className="flex items-center justify-between gap-4 border-b border-surface3 py-1.5 last:border-b-0"
+            >
+              <span className="font-mono text-[11px] uppercase tracking-wide text-faint">
+                {r.label}
+              </span>
+              <span className="text-right font-mono text-[12px] text-lo">
+                {r.value}
+              </span>
             </div>
           ))}
         </div>
@@ -262,8 +320,8 @@ function PlantDetailModal({ plant, onClose }: { plant: ApiPlant; onClose: () => 
 }
 
 // Loads the Leaflet CSS/JS from CDN once and resolves when ready.
-function loadLeaflet(): Promise<any> {
-  const w = window as any;
+function loadLeaflet(): Promise<LeafletStatic> {
+  const w = window as Window & { L?: LeafletStatic };
   if (w.L) return Promise.resolve(w.L);
 
   return new Promise((resolve, reject) => {
@@ -275,10 +333,18 @@ function loadLeaflet(): Promise<any> {
       document.head.appendChild(link);
     }
 
-    const existingScript = document.getElementById(LEAFLET_JS_ID) as HTMLScriptElement | null;
+    const existingScript = document.getElementById(
+      LEAFLET_JS_ID,
+    ) as HTMLScriptElement | null;
     if (existingScript) {
-      existingScript.addEventListener("load", () => resolve((window as any).L));
-      existingScript.addEventListener("error", reject);
+      existingScript.addEventListener("load", () => {
+        const loaded = (window as Window & { L?: LeafletStatic }).L;
+        if (loaded) resolve(loaded);
+        else reject(new Error("Leaflet failed to initialize"));
+      });
+      existingScript.addEventListener("error", () =>
+        reject(new Error("Failed to load Leaflet script")),
+      );
       return;
     }
 
@@ -286,17 +352,19 @@ function loadLeaflet(): Promise<any> {
     script.id = LEAFLET_JS_ID;
     script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
     script.async = true;
-    script.onload = () => resolve((window as any).L);
-    script.onerror = reject;
+    script.onload = () => {
+      const loaded = (window as Window & { L?: LeafletStatic }).L;
+      if (loaded) resolve(loaded);
+      else reject(new Error("Leaflet failed to initialize"));
+    };
+    script.onerror = () => reject(new Error("Failed to load Leaflet script"));
     document.body.appendChild(script);
   });
 }
 
-// Full-screen map modal that drops a pin at the plant's lat/long and shows
-// plant details (name, capacity, install date) in a popup on the marker.
-function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => void }) {
+function PlantMapModal({ plant, onClose }: PlantMapModalProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -327,7 +395,7 @@ function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => voi
         const popupHtml = `
           <div style="font-family: monospace; font-size: 12px; line-height: 1.5;">
             <div style="font-weight: 700; font-size: 13px; margin-bottom: 4px;">${escapeHtml(
-              plant.plantname
+              plant.plantname,
             )}</div>
             <div><strong>Capacity:</strong> ${plant.capacityKw.toLocaleString("en-IN")} kW</div>
             <div><strong>Installed:</strong> ${formatDate(plant.installDate)}</div>
@@ -341,7 +409,8 @@ function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => voi
           .openPopup();
       })
       .catch(() => {
-        if (!cancelled) setMapError("Failed to load the map. Check your network connection.");
+        if (!cancelled)
+          setMapError("Failed to load the map. Check your network connection.");
       });
 
     return () => {
@@ -358,7 +427,9 @@ function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => voi
       <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-md border border-surface3 bg-surface2">
         <div className="flex items-start justify-between border-b border-surface3 px-5 py-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-wide text-faint">Plant location</p>
+            <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
+              Plant location
+            </p>
             <h3 className="text-hi text-lg">{plant.plantname}</h3>
             <p className="font-mono text-[11px] text-faint">
               {plant.latitude.toFixed(6)}, {plant.longitude.toFixed(6)}
@@ -386,12 +457,15 @@ function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => voi
         <div className="flex items-center justify-between border-t border-surface3 px-5 py-3">
           <div className="flex gap-6 font-mono text-[11px] text-faint">
             <span>
-              <span className="text-lo">Capacity:</span> {plant.capacityKw.toLocaleString("en-IN")} kW
+              <span className="text-lo">Capacity:</span>{" "}
+              {plant.capacityKw.toLocaleString("en-IN")} kW
             </span>
             <span>
-              <span className="text-lo">Installed:</span> {formatDate(plant.installDate)}
+              <span className="text-lo">Installed:</span>{" "}
+              {formatDate(plant.installDate)}
             </span>
           </div>
+
           <a
             href={`https://www.google.com/maps?q=${plant.latitude},${plant.longitude}`}
             target="_blank"
@@ -404,10 +478,4 @@ function PlantMapModal({ plant, onClose }: { plant: ApiPlant; onClose: () => voi
       </div>
     </div>
   );
-}
-
-function escapeHtml(value: string) {
-  const div = document.createElement("div");
-  div.textContent = value;
-  return div.innerHTML;
 }

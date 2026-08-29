@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuth } from "../Context/Authcontext";
+import { useAuth } from "../Context/useAuth";
 
 export default function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -14,7 +14,6 @@ export default function ProtectedRoute() {
   }
 
   if (!isAuthenticated) {
-    // Preserve where the admin was headed so we can send them back after login.
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
