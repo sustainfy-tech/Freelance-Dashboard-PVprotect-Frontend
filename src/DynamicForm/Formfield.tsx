@@ -43,7 +43,8 @@ export default function FormField({
         uploaded.push(await uploadFile(serviceId, file, setUploadPct));
       }
       onChange(field.maxFiles === 1 ? uploaded : [...existing, ...uploaded]);
-    } catch {
+    } catch (err) {
+      console.error("File upload failed:", err);
     } finally {
       setUploading(false);
     }
