@@ -6,7 +6,7 @@ import type { Column } from "../types/Components/DataTable.types";
 import StatusBadge from "../components/StatusBadge";
 import { ToolbarSearch, FilterChip } from "../components/Toolbar";
 import { payments } from "../data/mockData";
-import type { Payment, PaymentStatus } from "../types";
+import type { Payment, PaymentStatus } from "../types/types";
 
 const filters: { label: string; value: PaymentStatus | "all" }[] = [
   { label: "All", value: "all" },
@@ -30,7 +30,10 @@ export default function Payments() {
       const matchesStatus = status === "all" || p.status === status;
       const q = query.toLowerCase();
       const matchesQuery =
-        !q || p.id.toLowerCase().includes(q) || p.clientName.toLowerCase().includes(q) || p.bookingId.toLowerCase().includes(q);
+        !q ||
+        p.id.toLowerCase().includes(q) ||
+        p.clientName.toLowerCase().includes(q) ||
+        p.bookingId.toLowerCase().includes(q);
       return matchesStatus && matchesQuery;
     });
   }, [query, status]);
@@ -38,14 +41,33 @@ export default function Payments() {
   const totalReceived = payments
     .filter((p) => ["received", "otp_verified", "verified"].includes(p.status))
     .reduce((s, p) => s + p.amount, 0);
-  const totalPending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0);
+  const totalPending = payments
+    .filter((p) => p.status === "pending")
+    .reduce((s, p) => s + p.amount, 0);
 
   const columns: Column<Payment>[] = [
-    { header: "Payment", accessor: (p) => <span className="font-mono text-gold">{p.id}</span> },
-    { header: "Booking", accessor: (p) => <span className="font-mono text-lo">{p.bookingId}</span> },
-    { header: "Client", accessor: (p) => <span className="text-hi">{p.clientName}</span> },
-    { header: "Amount", accessor: (p) => <span className="font-mono">{currency(p.amount)}</span> },
-    { header: "Method", accessor: (p) => <span className="uppercase text-lo">{p.method.replace("_", " ")}</span> },
+    {
+      header: "Payment",
+      accessor: (p) => <span className="font-mono text-gold">{p.id}</span>,
+    },
+    {
+      header: "Booking",
+      accessor: (p) => <span className="font-mono text-lo">{p.bookingId}</span>,
+    },
+    {
+      header: "Client",
+      accessor: (p) => <span className="text-hi">{p.clientName}</span>,
+    },
+    {
+      header: "Amount",
+      accessor: (p) => <span className="font-mono">{currency(p.amount)}</span>,
+    },
+    {
+      header: "Method",
+      accessor: (p) => (
+        <span className="uppercase text-lo">{p.method.replace("_", " ")}</span>
+      ),
+    },
     {
       header: "OTP",
       accessor: (p) =>
@@ -63,7 +85,10 @@ export default function Payments() {
       header: "Date",
       accessor: (p) => (
         <span className="font-mono text-[12px] text-lo">
-          {new Date(p.date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
+          {new Date(p.date).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+          })}
         </span>
       ),
     },
@@ -85,26 +110,49 @@ export default function Payments() {
 
       <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3">
         <div className="bg-surface p-4">
-          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">Received (period)</p>
-          <p className="mt-1 font-display text-xl text-hi">{currency(totalReceived)}</p>
+          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
+            Received (period)
+          </p>
+          <p className="mt-1 font-display text-xl text-hi">
+            {currency(totalReceived)}
+          </p>
         </div>
         <div className="bg-surface p-4">
-          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">Pending settlement</p>
-          <p className="mt-1 font-display text-xl text-gold">{currency(totalPending)}</p>
+          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
+            Pending settlement
+          </p>
+          <p className="mt-1 font-display text-xl text-gold">
+            {currency(totalPending)}
+          </p>
         </div>
         <div className="bg-surface p-4">
-          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">OTP verification rate</p>
+          <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
+            OTP verification rate
+          </p>
           <p className="mt-1 font-display text-xl text-teal">
-            {Math.round((payments.filter((p) => p.otpVerified).length / payments.length) * 100)}%
+            {Math.round(
+              (payments.filter((p) => p.otpVerified).length / payments.length) *
+                100,
+            )}
+            %
           </p>
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <ToolbarSearch value={query} onChange={setQuery} placeholder="Search payment, booking, client…" />
+        <ToolbarSearch
+          value={query}
+          onChange={setQuery}
+          placeholder="Search payment, booking, client…"
+        />
         <div className="flex flex-wrap gap-2">
           {filters.map((f) => (
-            <FilterChip key={f.value} label={f.label} active={status === f.value} onClick={() => setStatus(f.value)} />
+            <FilterChip
+              key={f.value}
+              label={f.label}
+              active={status === f.value}
+              onClick={() => setStatus(f.value)}
+            />
           ))}
         </div>
       </div>

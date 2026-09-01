@@ -9,7 +9,7 @@ export type BookingStatus =
   | "work_in_progress"
   | "rejected";
 
-  export interface AuditLogEntry {
+export interface AuditLogEntry {
   id: string;
   actor: string;
   actorRole: "client" | "technician" | "admin" | "system";
@@ -19,9 +19,18 @@ export type BookingStatus =
   correlationId: string;
 }
 
-export type PaymentStatus = "pending" | "received" | "otp_verified" | "verified" | "failed";
+export type PaymentStatus =
+  | "pending"
+  | "received"
+  | "otp_verified"
+  | "verified"
+  | "failed";
 
-export type TechnicianStatus = "available" | "on_job" | "off_duty" | "suspended";
+export type TechnicianStatus =
+  | "available"
+  | "on_job"
+  | "off_duty"
+  | "suspended";
 
 export type ClientTier = "residential" | "commercial" | "utility";
 
@@ -85,8 +94,6 @@ export interface Payment {
   method: "card" | "upi" | "bank_transfer" | "wallet";
   date: string;
 }
-
-
 
 export interface RevenuePoint {
   month: string;

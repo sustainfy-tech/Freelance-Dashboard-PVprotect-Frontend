@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import SectionHeader from "../components/SectionHeader";
 import { ToolbarSearch, FilterChip } from "../components/Toolbar";
 import { auditLogs } from "../data/mockData";
-import type { AuditLogEntry } from "../types";
+import type { AuditLogEntry } from "../types/types";
 import clsx from "clsx";
 
 const roles: { label: string; value: AuditLogEntry["actorRole"] | "all" }[] = [

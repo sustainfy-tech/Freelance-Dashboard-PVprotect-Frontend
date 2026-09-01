@@ -32,7 +32,6 @@ export default function App() {
               <Route path="/payments" element={<Payments />} />
               <Route path="/audit-logs" element={<AuditLogs />} />
               <Route path="/settings" element={<Settings />} />
-
               <Route
                 path="/form"
                 element={<SiteVisitForm serviceId={""} bookingId={""} />}

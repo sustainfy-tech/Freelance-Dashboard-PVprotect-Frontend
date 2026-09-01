@@ -1,7 +1,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AuthContext } from "../types/context/AuthContext.types";
 import type { AdminUser } from "../types/context/AuthContext.types";
-import { verifySession, login as loginRequest, logout as logoutRequest } from "../api/auth";
+import {
+  verifySession,
+  login as loginRequest,
+  logout as logoutRequest,
+} from "../api/auth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);

@@ -10,10 +10,9 @@ import type {
 } from "../types/Components/PlantList.types";
 import type {
   PlantsListApiResponse,
-  ApiPlant,JsonValue
+  ApiPlant,
+  JsonValue,
 } from "../types/Pages/Plant.types";
-
-
 
 function formatLabel(key: string) {
   return key
