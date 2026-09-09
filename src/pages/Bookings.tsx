@@ -15,7 +15,7 @@ import { LoadingState, ErrorState } from "../components/AsyncStates";
 import Modal from "../components/Modal";
 import { useApiData } from "../hooks/useApiData";
 import { listBookingRequestsForAdmin, assignTechnician } from "../api/bookings";
-import { listTechniciansForAdmin } from "../api/technicians";
+import { listAprovedTechnicians } from "../api/technicians";
 import type {
   ApiBookingRequest,
   BookingRequestStatus,
@@ -28,8 +28,77 @@ import type {
 } from "../types/Pages/Bookings.types";
 import clsx from "clsx";
 
-const BUCKET_NAME = "pvprotech-blogs";
+const BUCKET_NAME = "pvprotech-bucket-new";
 const AWS_REGION = "ap-south-1";
+
+// ---- Raw API shape (as returned by GET /bookings) ----
+interface RawBookingItem {
+  bookingId: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  notes?: string | null;
+  plantId: string;
+  bookingStatus: string;
+  service?: { type?: string | null; id?: string | null } | null;
+  schedule?: { preferredDate?: string | null } | null;
+  plant?: {
+    name?: string | null;
+    address?: string | null;
+    capacityKw?: number | null;
+  } | null;
+  assignment?: {
+    technicianId?: string | null;
+    technicianName?: string | null;
+    assignedAt?: string | null;
+  } | null;
+  visit?: {
+    status?: string | null;
+    data?: Record<string, VisitFieldValue> | null;
+  } | null;
+  rejection?: { reason?: string | null; updatedAt?: string | null } | null;
+  payment?: {
+    mode?: string | null;
+    status?: string | null;
+    amount?: number | null;
+    updatedAt?: string | null;
+  } | null;
+}
+
+interface RawBookingListResponse {
+  items: RawBookingItem[];
+  count?: number;
+  nextToken?: string | null;
+}
+
+// Maps the nested API response onto the flat shape the rest of this
+// component (table columns, details modal, visit modal) expects.
+function normalizeBooking(raw: RawBookingItem): BookingRequestWithVisitData {
+  return {
+    bookingId: raw.bookingId,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+    userId: raw.userId,
+    notes: raw.notes ?? null,
+    plantId: raw.plantId,
+    status: raw.bookingStatus as BookingRequestStatus,
+    serviceType: raw.service?.type ?? null,
+    preferredDate: raw.schedule?.preferredDate ?? null,
+    plantName: raw.plant?.name ?? null,
+    plantAddress: raw.plant?.address ?? null,
+    assignedTechnicianId: raw.assignment?.technicianId ?? null,
+    assignedTechnicianName: raw.assignment?.technicianName ?? null,
+    visitData: raw.visit?.data ?? null,
+    action: raw.assignment
+      ? {
+          status: raw.visit?.status ?? undefined,
+          updatedAt: raw.assignment.assignedAt ?? undefined,
+        }
+      : null,
+    rejectionReason: raw.rejection?.reason ?? null,
+    reason: raw.rejection?.reason ?? null,
+  } as BookingRequestWithVisitData;
+}
 
 function isVisitFile(value: VisitFieldValue): value is VisitFileValue {
   return (
@@ -39,6 +108,7 @@ function isVisitFile(value: VisitFieldValue): value is VisitFileValue {
     typeof (value as VisitFileValue).s3key === "string"
   );
 }
+
 function s3Url(s3key: string) {
   const key = s3key.startsWith("/") ? s3key.slice(1) : s3key;
   return `https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
@@ -56,7 +126,7 @@ const filters: { label: string; value: BookingRequestStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Pending", value: "pending" },
   { label: "Assigned", value: "assigned" },
-  { label: "Submitted", value: "submitted" },
+  { label: "Completed", value: "completed" },
   { label: "Rejected", value: "rejected" },
 ];
 
@@ -86,13 +156,14 @@ function formatDate(value?: string | null) {
 
 export default function Bookings() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<BookingRequestStatus | "all">("pending");
+  const [status, setStatus] = useState<BookingRequestStatus | "all">(
+    "pending",
+  );
   const [assignTarget, setAssignTarget] = useState<ApiBookingRequest | null>(
     null,
   );
-  const [detailsTarget, setDetailsTarget] = useState<ApiBookingRequest | null>(
-    null,
-  );
+  const [detailsTarget, setDetailsTarget] =
+    useState<ApiBookingRequest | null>(null);
   const [visitTarget, setVisitTarget] = useState<ApiBookingRequest | null>(
     null,
   );
@@ -110,7 +181,7 @@ export default function Bookings() {
     data: technicianData,
     loading: techniciansLoading,
     error: techniciansError,
-  } = useApiData(() => listTechniciansForAdmin(), []);
+  } = useApiData(() => listAprovedTechnicians(), []);
 
   const technicians: ApiTechnician[] = useMemo(() => {
     if (Array.isArray(technicianData)) return technicianData;
@@ -123,7 +194,13 @@ export default function Bookings() {
     return [];
   }, [technicianData]);
 
-  const rows = useMemo(() => data ?? [], [data]);
+  const rows = useMemo(() => {
+    const raw = data as RawBookingListResponse | RawBookingItem[] | null;
+    const items: RawBookingItem[] = Array.isArray(raw)
+      ? raw
+      : (raw?.items ?? []);
+    return items.map(normalizeBooking);
+  }, [data]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -235,7 +312,7 @@ export default function Bookings() {
     {
       header: "Visit",
       accessor: (b) => {
-        if (b.status === "submitted") {
+        if (b.status === "completed") {
           return (
             <button
               onClick={() => openVisit(b, "visit")}
@@ -347,7 +424,9 @@ export default function Bookings() {
           </label>
 
           {techniciansLoading && (
-            <p className="mb-4 text-[12px] text-faint">Loading technicians…</p>
+            <p className="mb-4 text-[12px] text-faint">
+              Loading technicians…
+            </p>
           )}
           {!techniciansLoading && techniciansError && (
             <p className="mb-4 text-[12px] text-danger">
@@ -373,7 +452,6 @@ export default function Bookings() {
                   <option key={techId} value={techId}>
                     {displayName}
                     {t.address ? ` — ${String(t.address?.city)}` : ""}
-                    {/* {t.status ? ` (${String(t.status)})` : ""} */}
                   </option>
                 );
               })}
@@ -416,7 +494,10 @@ export default function Bookings() {
               label="Status"
               value={<StatusBadge status={detailsTarget.status} />}
             />
-            <DetailRow label="Service type" value={detailsTarget.serviceType} />
+            <DetailRow
+              label="Service type"
+              value={detailsTarget.serviceType}
+            />
             <DetailRow label="Plant name" value={detailsTarget.plantName} />
             <DetailRow
               label="Plant ID"
@@ -522,10 +603,11 @@ function VisitDataView({
   } | null>(null);
 
   const entries = Object.entries(visitData ?? {});
-  const fileEntries = entries.filter(([, v]) => isVisitFile(v)) as Array<
-    [string, VisitFileValue]
-  >;
-  const plainEntries = entries.filter(([, v]) => !isVisitFile(v));
+
+  const fileEntries = entries.filter(
+    (entry): entry is [string, VisitFileValue] => isVisitFile(entry[1]),
+  );
+  const plainEntries = entries.filter((entry) => !isVisitFile(entry[1]));
 
   const imageEntries = fileEntries.filter(([, file]) =>
     file.type?.startsWith("image/"),
@@ -597,7 +679,9 @@ function VisitDataView({
                 <button
                   key={label}
                   type="button"
-                  onClick={() => setLightbox({ url: s3Url(file.s3key), label })}
+                  onClick={() =>
+                    setLightbox({ url: s3Url(file.s3key), label })
+                  }
                   className="group block overflow-hidden rounded-sm border border-border bg-surface2 text-left"
                 >
                   <img
@@ -655,7 +739,7 @@ function VisitDataView({
         )}
       </div>
 
-      {lightbox && (
+      {lightbox !== null && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
           onClick={() => setLightbox(null)}

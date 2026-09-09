@@ -1,4 +1,4 @@
-import { apiRequest, adminPath } from "./http";
+import { apiRequest } from "./http";
 import type {
   ApiTechnician,
   ApprovalStatus,
@@ -6,23 +6,27 @@ import type {
 import type { ApiPlant } from "../types/Pages/Plant.types";
 
 export function listTechniciansForAdmin() {
-  return apiRequest<ApiTechnician[]>(adminPath("/app-users/approved"));
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?role=client");
+}
+
+export function listAprovedTechnicians() {
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?status=active&role=technician");
 }
 
 export function listAllTechnicians() {
-  return apiRequest<ApiTechnician[]>(adminPath("/app-users/all"));
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?role=technician");
 }
 
 export function listTechnicianRequests() {
-  return apiRequest<ApiTechnician[]>(adminPath("/app-users/requests"));
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/requests");
 }
 
 export function getPlantsByClientId(userId: string) {
-  return apiRequest<ApiPlant[]>(`/plants/user/${userId}`);
+  return apiRequest<ApiPlant[]>(`/api/v1/plants/user/${userId}`);
 }
 
 export function updateTechnicianStatus(id: string, status: ApprovalStatus) {
-  return apiRequest<ApiTechnician>(`/app-users/${id}/status`, {
+  return apiRequest<ApiTechnician>(`/api/v1/admin/app-users/${id}/status`, {
     method: "PATCH",
     body: { status },
   });

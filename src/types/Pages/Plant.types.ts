@@ -1,12 +1,8 @@
-export interface PlantsListApiResponse {
-  success?: boolean;
-  data?: ApiPlant[];
-}
 export interface ApiPlant {
   capacityKw: number;
   plantId: string;
   lastServiceDate: string | null;
-  plantname: string;
+  plantName: string;
   installDate: string;
   updatedAt: string;
   userId: string;
@@ -17,9 +13,28 @@ export interface ApiPlant {
   latitude: number;
 }
 
-export interface PlantsApiResponse {
+export interface PlantsListApiResponse {
+  statusCode: number;
   success: boolean;
-  data: ApiPlant[];
+  message: string;
+  data: {
+    items: ApiPlant[];
+    count: number;
+  };
+}
+
+export interface PlantsListData {
+  items: ApiPlant[];
+  count: number;
+}
+export interface PlantsApiResponse {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: {
+    items: ApiPlant[];
+    count: number;
+  };
 }
 
 export interface PlantDetailModalProps {

@@ -63,5 +63,5 @@ export default function DataTable<T>({
         </tbody>
       </table>
     </div>
-  );
+);
 }

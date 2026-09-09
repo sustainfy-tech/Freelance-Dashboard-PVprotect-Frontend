@@ -24,17 +24,26 @@ function formatDate(d?: string | null) {
   });
 }
 
+// Shape actually returned by the API:
+// { statusCode, data: { items: ApiAppUser[], count, scannedCount, nextToken }, message, success }
+// Kept the older shapes as fallbacks in case other endpoints/mocks still use them.
+type TechniciansApiResponse =
+  | ApiAppUser[]
+  | { technicians?: ApiAppUser[] }
+  | { items?: ApiAppUser[] }
+  | { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } };
+
 async function loadClientRows(): Promise<ClientRow[]> {
-  const response = (await listTechniciansForAdmin()) as unknown as
-    | ApiAppUser[]
-    | { technicians?: ApiAppUser[] }
-    | { data?: { technicians?: ApiAppUser[] } };
+  const response = (await listTechniciansForAdmin()) as unknown as TechniciansApiResponse;
 
   const users: ApiAppUser[] = Array.isArray(response)
     ? response
-    : ((response as { technicians?: ApiAppUser[] })?.technicians ??
-      (response as { data?: { technicians?: ApiAppUser[] } })?.data
+    : ((response as { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } })?.data
+        ?.items ??
+      (response as { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } })?.data
         ?.technicians ??
+      (response as { items?: ApiAppUser[] })?.items ??
+      (response as { technicians?: ApiAppUser[] })?.technicians ??
       []);
 
   return users
@@ -50,7 +59,7 @@ async function loadClientRows(): Promise<ClientRow[]> {
             : undefined;
       return {
         id: u.verifiedUserId ?? String(idx),
-        name: u.user_name ?? "—",
+        name: (u.user_name ?? "—").trim() || "—",
         email: u.user_email ?? "—",
         contact: u.contact_number ?? "—",
         plants: typeof u.plants === "number" ? u.plants : undefined,

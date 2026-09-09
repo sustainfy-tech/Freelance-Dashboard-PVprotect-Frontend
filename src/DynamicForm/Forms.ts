@@ -1,4 +1,4 @@
-import { apiRequest, servicesPath, ApiError } from "../api/http";
+import { apiRequest, ApiError } from "../api/http";
 import type {
   ApiForm,
   ApiSiteVisit,
@@ -7,7 +7,7 @@ import type {
 } from "../types/Components/SitevisitForm.types";
 
 export function getActiveForm(serviceId: string) {
-  return apiRequest<ApiForm>(servicesPath(`/${serviceId}/form`));
+  return apiRequest<ApiForm>(`/api/v1/admin/services/${serviceId}/form`);
 }
 
 export function getUploadUrl(
@@ -15,7 +15,7 @@ export function getUploadUrl(
   file: { name: string; type: string; size: number },
 ) {
   return apiRequest<{ uploadUrl: string; fileKey: string; fileUrl: string }>(
-    servicesPath(`/${serviceId}/uploads`),
+    `/api/v1/admin/services/${serviceId}/uploads`,
     { method: "POST", body: file },
   );
 }
@@ -70,10 +70,10 @@ export function submitSiteVisit(
   serviceId: string,
   payload: { formVersion: number; answers: Record<string, FieldValue> },
 ) {
-  return apiRequest<ApiSiteVisit>(servicesPath(`/${serviceId}/site-visits`), {
+  return apiRequest<ApiSiteVisit>(`/api/v1/admin/services/${serviceId}/site-visits`), {
     method: "POST",
     body: payload,
-  });
+  };
 }
 
 export { ApiError };

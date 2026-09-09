@@ -13,7 +13,6 @@ import {
 import type {
   Tab,
   TechniciansResponse,
-  TechniciansEnvelope,
   ApprovalStatus,
   ApiTechnician,
 } from "../types/Pages/Technicians.types";
@@ -36,14 +35,11 @@ const n = (v: unknown, fallback = 0): number => {
 };
 
 function extractList(response: TechniciansResponse): ApiTechnician[] {
-  const r = response as
-    | TechniciansEnvelope
-    | ApiTechnician[]
-    | null
-    | undefined;
-  console.log("r", r);
+  const r = response as any;
   if (Array.isArray(r)) return r;
-  return (Array.isArray(r?.data?.technicians) && r.data.technicians) || [];
+  if (Array.isArray(r?.items)) return r.items;
+  if (Array.isArray(r?.data?.items)) return r.data.items;
+  return [];
 }
 
 export default function Technicians() {

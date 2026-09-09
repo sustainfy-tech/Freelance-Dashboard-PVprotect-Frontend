@@ -1,9 +1,6 @@
 import axios, { AxiosError, type Method } from "axios";
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
-const ADMIN_PREFIX = "/admin";
-const SERVICES_PREFIX = "/services";
+export const API_BASE_URL = "https://8719-122-170-196-27.ngrok-free.app";
 
 export class ApiError extends Error {
   status: number;
@@ -28,6 +25,7 @@ const client = axios.create({
     "Content-Type": "application/json",
   },
 });
+
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
@@ -87,16 +85,13 @@ export async function apiRequest<T>(
     if (axios.isAxiosError(err)) {
       const axiosErr = err as AxiosError<unknown>;
       if (!axiosErr.response) {
-        throw new ApiError(
-          `Network error calling ${method} ${url}. Is the API running and reachable at ${API_BASE_URL}?`,
-          0,
-          axiosErr,
-        );
+        throw new ApiError(`Network error calling.`, 0, axiosErr);
       }
 
       const { status, data: parsed } = axiosErr.response;
 
       if (status === 401 && window.location.pathname !== "/login") {
+        localStorage.removeItem("pvprotect_admin");
         window.location.href = "/login";
       }
 
@@ -109,6 +104,3 @@ export async function apiRequest<T>(
     throw new ApiError(`${method} ${url} failed unexpectedly.`, 0, err);
   }
 }
-
-export const adminPath = (path: string) => `${ADMIN_PREFIX}${path}`;
-export const servicesPath = (path: string) => `${SERVICES_PREFIX}${path}`;

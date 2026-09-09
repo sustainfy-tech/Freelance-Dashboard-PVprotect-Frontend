@@ -1,17 +1,13 @@
-import { apiRequest, adminPath } from "./http";
+import { apiRequest } from "./http";
 import type { AuthPayload } from "../types/context/AuthContext.types";
 
-export function verifySession() {
-  return apiRequest<AuthPayload>(adminPath("/auth/verify"));
-}
-
-export function login(email: string, password: string) {
-  return apiRequest<AuthPayload>(adminPath("/auth/login"), {
+export function login(verifiedUserId: string, password: string) {
+  return apiRequest<AuthPayload>("/api/v1/admin/auth/login", {
     method: "POST",
-    body: { email, password },
+    body: { verifiedUserId, password },
   });
 }
 
 export function logout() {
-  return apiRequest<unknown>(adminPath("/auth/logout"), { method: "POST" });
+  return apiRequest<unknown>("/api/v1/admin/auth/logout", { method: "POST" });
 }

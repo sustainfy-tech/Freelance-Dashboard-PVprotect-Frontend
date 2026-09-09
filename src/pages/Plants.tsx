@@ -96,14 +96,20 @@ export default function Plants() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
+
+    if (!Array.isArray(plants)) {
+      return [];
+    }
+
     return plants.filter(
       (p) =>
         !q ||
-        p.plantname.toLowerCase().includes(q) ||
-        p.address.toLowerCase().includes(q) ||
-        p.plantId.toLowerCase().includes(q),
+        p.plantName?.toLowerCase().includes(q) ||
+        p.address?.toLowerCase().includes(q) ||
+        p.plantId?.toLowerCase().includes(q),
     );
   }, [plants, query]);
+  console.log('plants',plants)
 
   const columns: Column<ApiPlant>[] = [
     {
@@ -115,7 +121,7 @@ export default function Plants() {
           className="text-left hover:opacity-80 cursor-pointer"
         >
           <p className="text-hi underline-offset-2 hover:underline">
-            {p.plantname}
+            {p.plantName}
           </p>
           <p className="font-mono text-[11px] text-faint">
             {p.plantId.slice(0, 8)}
@@ -259,8 +265,8 @@ function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
   }, [onClose]);
 
   const rows: { label: string; value: string }[] = [
-    { label: "Plant ID", value: plant.plantId },
-    { label: "Plant name", value: plant.plantname },
+    { label: "Plant ID", value: plant.plantId.slice(0, 8) },
+    { label: "Plant name", value: plant.plantName },
     { label: "User ID", value: plant.userId },
     { label: "Address", value: plant.address },
     {
@@ -288,7 +294,7 @@ function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
             <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
               Plant details
             </p>
-            <h3 className="text-hi text-lg">{plant.plantname}</h3>
+            <h3 className="text-hi text-lg">{plant.plantName}</h3>
           </div>
           <button
             type="button"
@@ -395,7 +401,7 @@ function PlantMapModal({ plant, onClose }: PlantMapModalProps) {
         const popupHtml = `
           <div style="font-family: monospace; font-size: 12px; line-height: 1.5;">
             <div style="font-weight: 700; font-size: 13px; margin-bottom: 4px;">${escapeHtml(
-              plant.plantname,
+              plant.plantName,
             )}</div>
             <div><strong>Capacity:</strong> ${plant.capacityKw.toLocaleString("en-IN")} kW</div>
             <div><strong>Installed:</strong> ${formatDate(plant.installDate)}</div>
@@ -430,7 +436,7 @@ function PlantMapModal({ plant, onClose }: PlantMapModalProps) {
             <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
               Plant location
             </p>
-            <h3 className="text-hi text-lg">{plant.plantname}</h3>
+            <h3 className="text-hi text-lg">{plant.plantName}</h3>
             <p className="font-mono text-[11px] text-faint">
               {plant.latitude.toFixed(6)}, {plant.longitude.toFixed(6)}
             </p>

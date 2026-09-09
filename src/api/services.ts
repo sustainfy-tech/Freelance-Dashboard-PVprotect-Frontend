@@ -1,4 +1,4 @@
-import { apiRequest, adminPath, servicesPath } from "./http";
+import { apiRequest } from "./http";
 import { ApiError } from "./http";
 import type {
   ApiService,
@@ -8,43 +8,43 @@ import type {
 } from "../types/Pages/Services.types";
 
 export function listServices() {
-  return apiRequest<ApiService[]>(servicesPath("/"));
+  return apiRequest<ApiService[]>("/api/v1/admin/services");
 }
 
 export function getService(id: string) {
-  return apiRequest<ApiService>(adminPath(`/services/${id}`));
+  return apiRequest<ApiService>(`/api/v1/admin/services/${id}`);
 }
 
 export function createService(payload: Partial<ApiService>) {
-  return apiRequest<ApiService>(adminPath("/services"), {
+  return apiRequest<ApiService>(`/api/v1/admin/services`), {
     method: "POST",
     body: payload,
-  });
+  };
 }
 
 export function updateService(id: string, payload: Partial<ApiService>) {
-  return apiRequest<ApiService>(adminPath(`/services/${id}`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${id}`), {
     method: "PATCH",
     body: payload,
-  });
+  };
 }
 
 export function deleteService(id: string) {
-  return apiRequest<{ success: boolean }>(adminPath(`/services/${id}`), {
+  return apiRequest<{ success: boolean }>(`/api/v1/admin/services/${id}`), {
     method: "DELETE",
-  });
+  };
 }
 
 export function setServiceAvailability(id: string, available: boolean) {
-  return apiRequest<ApiService>(adminPath(`/services/${id}/availability`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${id}/availability`), {
     method: "PATCH",
     body: { available },
-  });
+  };
 }
 
 export function addUnavailableDate(id: string, date: string) {
   return apiRequest<ApiService>(
-    adminPath(`/services/${id}/unavailable-dates`),
+    `/api/v1/admin/services/${id}/unavailable-dates`,
     {
       method: "PATCH",
       body: { date },
@@ -54,7 +54,7 @@ export function addUnavailableDate(id: string, date: string) {
 
 export function removeUnavailableDate(id: string, date: string) {
   return apiRequest<ApiService>(
-    adminPath(`/services/${id}/unavailable-dates/${date}`),
+    `/api/v1/admin/services/${id}/unavailable-dates/${date}`,
     {
       method: "DELETE",
     },
@@ -63,7 +63,7 @@ export function removeUnavailableDate(id: string, date: string) {
 
 export function listSlots(serviceId: string, date: string) {
   return apiRequest<ApiSlot[]>(
-    adminPath(`/services/${serviceId}/slots?date=${date}`),
+    `/api/v1/admin/services/${serviceId}/slots?date=${date}`,
   );
 }
 
@@ -71,10 +71,10 @@ export function createSlot(
   serviceId: string,
   payload: { date: string; time: string },
 ) {
-  return apiRequest<ApiService>(adminPath(`/services/${serviceId}/slots`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${serviceId}/slots`), {
     method: "POST",
     body: payload,
-  });
+  };
 }
 
 export function updateSlotStatus(
@@ -83,14 +83,14 @@ export function updateSlotStatus(
   status: string,
 ) {
   return apiRequest<ApiService>(
-    adminPath(`/services/${serviceId}/slots/${encodeURIComponent(slotId)}`),
+    `/api/v1/admin/services/${serviceId}/slots/${encodeURIComponent(slotId)}`,
     { method: "PATCH", body: { status } },
   );
 }
 
 export function deleteSlot(serviceId: string, slotId: string) {
   return apiRequest<{ success: boolean }>(
-    adminPath(`/services/${serviceId}/slots/${encodeURIComponent(slotId)}`),
+    `/api/v1/admin/services/${serviceId}/slots/${encodeURIComponent(slotId)}`,
     { method: "DELETE" },
   );
 }
@@ -113,7 +113,7 @@ export function createServiceForm(
   payload: ApiServiceFormPayload,
 ) {
   return apiRequest<ApiServiceForm>(
-    adminPath(`/service-form/${serviceId}/forms`),
+    `/api/v1/admin/service-form/${serviceId}/forms`,
     {
       method: "POST",
       body: payload,
@@ -133,3 +133,7 @@ export function updateServiceForm(
     },
   );
 }
+function adminPath(_arg0: string): string {
+  throw new Error("Function not implemented.");
+}
+

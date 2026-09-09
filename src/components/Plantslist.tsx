@@ -8,11 +8,7 @@ import type {
   PlantsListProps,
   ApiPlantAddress,
 } from "../types/Components/PlantList.types";
-import type {
-  PlantsListApiResponse,
-  ApiPlant,
-  JsonValue,
-} from "../types/Pages/Plant.types";
+import type { ApiPlant, JsonValue } from "../types/Pages/Plant.types";
 
 function formatLabel(key: string) {
   return key
@@ -55,9 +51,40 @@ function formatDate(d?: string | null) {
   });
 }
 
+// Digs through the common wrapper shapes an axios/API helper might return
+// and finds the actual array of plants, wherever it landed. Returns null
+// (not []) when nothing matched, so the caller can tell "empty" apart from
+// "shape I don't recognize".
+function extractPlantItems(response: unknown): ApiPlant[] | null {
+  if (Array.isArray(response)) return response as ApiPlant[];
+  if (!response || typeof response !== "object") return null;
+
+  const r = response as Record<string, unknown>;
+
+  const candidates: unknown[] = [
+    r.items,
+    r.data,
+    r.plants,
+    (r.data as Record<string, unknown> | undefined)?.items,
+    (r.data as Record<string, unknown> | undefined)?.plants,
+    (r.data as Record<string, unknown> | undefined)?.data,
+    (
+      (r.data as Record<string, unknown> | undefined)?.data as
+        | Record<string, unknown>
+        | undefined
+    )?.items,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate as ApiPlant[];
+  }
+
+  return null;
+}
+
 const KNOWN_PLANT_KEYS = new Set([
   "plantId",
-  "plantname",
+  "plantName",
   "userId",
   "address",
   "capacityKw",
@@ -66,6 +93,9 @@ const KNOWN_PLANT_KEYS = new Set([
   "lastServiceDate",
   "createdAt",
   "updatedAt",
+  "latitude",
+  "longitude",
+  "soilingLevel",
 ]);
 
 export default function PlantsList({
@@ -95,14 +125,18 @@ export default function PlantsList({
     setPlantsLoading(true);
     setPlantsError(null);
     try {
-      const response = (await getPlantsByClientId(id)) as
-        | ApiPlant[]
-        | PlantsListApiResponse;
+      const response = await getPlantsByClientId(id);
+      const plantRows = extractPlantItems(response);
 
-      const plantRows: ApiPlant[] = Array.isArray(response)
-        ? response
-        : (response?.data ?? []);
-      setPlants(plantRows);
+      if (plantRows === null) {
+        // None of the known shapes matched — log the real payload so it's
+        // visible in devtools instead of silently showing "0 plants".
+        console.warn(
+          "[PlantsList] Unrecognized plants response shape:",
+          response,
+        );
+      }
+      setPlants(plantRows ?? []);
     } catch (err) {
       setPlantsError(
         err instanceof Error ? err.message : "Failed to fetch plants",
@@ -124,7 +158,7 @@ export default function PlantsList({
     if (!q) return plants;
     return plants.filter(
       (p) =>
-        (p.plantname ?? "").toLowerCase().includes(q) ||
+        (p.plantName ?? "").toLowerCase().includes(q) ||
         formatAddress(p.address).toLowerCase().includes(q) ||
         p.plantId.toLowerCase().includes(q),
     );
@@ -222,7 +256,7 @@ export default function PlantsList({
               <Sun size={16} className="text-gold" />
               {plant.status && <StatusBadge status={plant.status} />}
             </div>
-            <p className="text-hi">{plant.plantname ?? "Untitled plant"}</p>
+            <p className="text-hi">{plant.plantName ?? "Untitled plant"}</p>
             {plant.address && (
               <p className="font-mono text-[11px] text-lo">
                 {formatAddress(plant.address)}
@@ -247,7 +281,7 @@ export default function PlantsList({
                   Plant details
                 </p>
                 <p className="text-hi">
-                  {selectedPlant.plantname ?? "Untitled plant"}
+                  {selectedPlant.plantName ?? "Untitled plant"}
                 </p>
                 <p className="font-mono text-[11px] text-faint">
                   {selectedPlant.plantId}

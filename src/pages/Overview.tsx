@@ -31,7 +31,7 @@ import {
 } from "../data/mockData";
 
 const BOOKING_REQUESTS_URL =
-  "http://localhost:8000/api/v1/admin/bookings/requests";
+  "https://92cb-122-170-198-166.ngrok-free.app/api/v1/admin/bookings/requests";
 
 type Booking = {
   id: string;
