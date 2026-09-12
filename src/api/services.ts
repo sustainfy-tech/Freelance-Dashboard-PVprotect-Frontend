@@ -16,30 +16,30 @@ export function getService(id: string) {
 }
 
 export function createService(payload: Partial<ApiService>) {
-  return apiRequest<ApiService>(`/api/v1/admin/services`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services`, {
     method: "POST",
     body: payload,
-  };
+  });
 }
 
 export function updateService(id: string, payload: Partial<ApiService>) {
-  return apiRequest<ApiService>(`/api/v1/admin/services/${id}`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${id}`, {
     method: "PATCH",
     body: payload,
-  };
+  });
 }
 
 export function deleteService(id: string) {
-  return apiRequest<{ success: boolean }>(`/api/v1/admin/services/${id}`), {
+  return apiRequest<{ success: boolean }>(`/api/v1/admin/services/${id}`, {
     method: "DELETE",
-  };
+  });
 }
 
 export function setServiceAvailability(id: string, available: boolean) {
-  return apiRequest<ApiService>(`/api/v1/admin/services/${id}/availability`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${id}/availability`, {
     method: "PATCH",
     body: { available },
-  };
+  });
 }
 
 export function addUnavailableDate(id: string, date: string) {
@@ -64,6 +64,7 @@ export function removeUnavailableDate(id: string, date: string) {
 export function listSlots(serviceId: string, date: string) {
   return apiRequest<ApiSlot[]>(
     `/api/v1/admin/services/${serviceId}/slots?date=${date}`,
+
   );
 }
 
@@ -71,19 +72,19 @@ export function createSlot(
   serviceId: string,
   payload: { date: string; time: string },
 ) {
-  return apiRequest<ApiService>(`/api/v1/admin/services/${serviceId}/slots`), {
+  return apiRequest<ApiService>(`/api/v1/admin/services/${serviceId}/slots`, {
     method: "POST",
     body: payload,
-  };
+  });
 }
 
-export function updateSlotStatus(
+export async function updateSlotStatus(
   serviceId: string,
   slotId: string,
   status: string,
 ) {
   return apiRequest<ApiService>(
-    `/api/v1/admin/services/${serviceId}/slots/${encodeURIComponent(slotId)}`,
+    `/api/v1/admin/services/${encodeURIComponent(serviceId)}/slots/${encodeURIComponent(slotId)}`,
     { method: "PATCH", body: { status } },
   );
 }
@@ -99,41 +100,40 @@ export async function getServiceForm(
   serviceId: string,
 ): Promise<ApiServiceForm | null> {
   try {
-    return await apiRequest<ApiServiceForm>(
-      adminPath(`/service-form/${serviceId}/forms`),
+    const res = await apiRequest<{ form: ApiServiceForm }>(
+      `/api/v1/admin/service-form/${serviceId}/forms`,
     );
+    return res.form ?? null;
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
 }
 
-export function createServiceForm(
+export async function createServiceForm(
   serviceId: string,
   payload: ApiServiceFormPayload,
 ) {
-  return apiRequest<ApiServiceForm>(
+  const res = await apiRequest<{ form: ApiServiceForm }>(
     `/api/v1/admin/service-form/${serviceId}/forms`,
     {
       method: "POST",
       body: payload,
     },
   );
+  return res.form;
 }
 
-export function updateServiceForm(
+export async function updateServiceForm(
   serviceId: string,
   payload: ApiServiceFormPayload,
 ) {
-  return apiRequest<ApiServiceForm>(
-    adminPath(`/service-form/${serviceId}/forms`),
+  const res = await apiRequest<{ form: ApiServiceForm }>(
+    `/api/v1/admin/service-form/${serviceId}/forms`,
     {
       method: "PATCH",
       body: payload,
     },
   );
+  return res.form;
 }
-function adminPath(_arg0: string): string {
-  throw new Error("Function not implemented.");
-}
-

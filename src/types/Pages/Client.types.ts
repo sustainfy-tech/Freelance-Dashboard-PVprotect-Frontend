@@ -11,7 +11,6 @@ export interface ClientRow {
 }
 
 export interface ApiAppUser {
-  // Common to all roles
   role?: "technician" | "client" | string;
   verifiedUserId?: string;
   user_name?: string;
@@ -22,7 +21,6 @@ export interface ApiAppUser {
   updatedAt?: string;
   documents?: ApiAppUserDocuments;
 
-  // Technician-only fields
   driving_Licence_Number?: string;
   specialization?: string;
   has_mobile_device?: boolean;
@@ -58,3 +56,10 @@ export interface ApiAppUserDocumentFile {
   contentType?: string;
   fileSize?: number;
 }
+
+
+export type TechniciansApiResponse =
+  | ApiAppUser[]
+  | { technicians?: ApiAppUser[] }
+  | { items?: ApiAppUser[] }
+  | { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } };

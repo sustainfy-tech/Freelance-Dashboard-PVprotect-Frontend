@@ -1,5 +1,13 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { RefreshCw, X, Sun, ArrowLeft } from "lucide-react";
+import {
+  RefreshCw,
+  X,
+  Sun,
+  ArrowLeft,
+  FileImage,
+  Check,
+  X as XIcon,
+} from "lucide-react";
 import SectionHeader from "./SectionHeader";
 import { ToolbarSearch } from "./Toolbar";
 import StatusBadge from "./StatusBadge";
@@ -8,7 +16,22 @@ import type {
   PlantsListProps,
   ApiPlantAddress,
 } from "../types/Components/PlantList.types";
-import type { ApiPlant, JsonValue } from "../types/Pages/Plant.types";
+import type {
+  ApiPlant,
+  JsonValue,
+  ApiPlantPhoto,
+  ApiSiteConditions,
+  PlantPhotoWithUrl,
+} from "../types/Pages/Plant.types";
+
+// S3 bucket details used to resolve an s3key into a viewable image URL.
+const BUCKET_NAME = "pvprotech-bucket-new";
+const AWS_REGION = "ap-south-1";
+
+function s3Url(s3key: string) {
+  const key = s3key.startsWith("/") ? s3key.slice(1) : s3key;
+  return `https://${BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com/${key}`;
+}
 
 function formatLabel(key: string) {
   return key
@@ -51,10 +74,14 @@ function formatDate(d?: string | null) {
   });
 }
 
-// Digs through the common wrapper shapes an axios/API helper might return
-// and finds the actual array of plants, wherever it landed. Returns null
-// (not []) when nothing matched, so the caller can tell "empty" apart from
-// "shape I don't recognize".
+function formatFileSize(bytes?: number): string {
+  if (bytes === undefined || bytes === null) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 function extractPlantItems(response: unknown): ApiPlant[] | null {
   if (Array.isArray(response)) return response as ApiPlant[];
   if (!response || typeof response !== "object") return null;
@@ -96,7 +123,167 @@ const KNOWN_PLANT_KEYS = new Set([
   "latitude",
   "longitude",
   "soilingLevel",
+  "plantPhotos",
+  "siteConditions",
+  "noOfModules",
 ]);
+
+const SITE_CONDITION_LABELS: Record<string, string> = {
+  waterPumpAvailable: "Water pump available",
+  waterAvailable: "Water available",
+  everyModuleAccessible: "Every module accessible",
+  walkwaysAvailable: "Walkways available",
+  hosePipeAvailable: "Hose pipe available",
+};
+
+function PhotoThumb({
+  photo,
+  onClick,
+}: {
+  photo: PlantPhotoWithUrl;
+  onClick: () => void;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={photo.name ?? "Plant photo"}
+      className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/5 transition-opacity hover:opacity-80"
+    >
+      {!imgFailed ? (
+        <img
+          src={photo.url}
+          alt={photo.name ?? "Plant photo"}
+          className="h-full w-full object-cover"
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <FileImage size={18} className="text-faint" />
+      )}
+    </button>
+  );
+}
+
+function PhotoRow({
+  photos,
+  onSelect,
+}: {
+  photos: PlantPhotoWithUrl[];
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {photos.map((photo, i) => (
+        <PhotoThumb
+          key={photo.url ?? i}
+          photo={photo}
+          onClick={() => onSelect(i)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PhotoLightbox({
+  photos,
+  startIndex,
+  onClose,
+}: {
+  photos: PlantPhotoWithUrl[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [failedIdx, setFailedIdx] = useState<Set<number>>(new Set());
+
+  return (
+    <div className="fixed inset-0 z-60 flex flex-col bg-black/90">
+      <div className="flex items-center justify-between p-4">
+        <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
+          {photos.length} photo{photos.length === 1 ? "" : "s"} · scroll to view
+        </p>
+        <button onClick={onClose} className="text-faint hover:text-hi">
+          <X size={20} />
+        </button>
+      </div>
+
+      <div
+        className="flex flex-1 snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4"
+        ref={(el) => {
+          if (!el) return;
+          const target = el.children[startIndex] as HTMLElement | undefined;
+          target?.scrollIntoView({
+            inline: "center",
+            behavior: "instant" as ScrollBehavior,
+          });
+        }}
+      >
+        {photos.map((photo, i) => {
+          const failed = failedIdx.has(i);
+          return (
+            <div
+              key={photo.url ?? i}
+              className="flex w-full shrink-0 snap-center flex-col items-center justify-center gap-3"
+            >
+              {!failed ? (
+                <img
+                  src={photo.url}
+                  alt={photo.name ?? "Plant photo"}
+                  className="max-h-[70vh] max-w-full rounded-sm object-contain"
+                  onError={() => setFailedIdx((prev) => new Set(prev).add(i))}
+                />
+              ) : (
+                <div className="flex h-64 w-64 items-center justify-center rounded-sm bg-white/5">
+                  <FileImage size={32} className="text-faint" />
+                </div>
+              )}
+              <p className="text-[12px] text-lo">
+                {photo.name ?? "Untitled photo"}
+              </p>
+              <p className="font-mono text-[10px] text-faint">
+                {[photo.type, formatFileSize(photo.size)]
+                  .filter(Boolean)
+                  .join(" · ") || "—"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SiteConditionsGrid({ conditions }: { conditions: ApiSiteConditions }) {
+  const entries = Object.entries(conditions).filter(
+    ([, v]) => typeof v === "boolean",
+  ) as [string, boolean][];
+
+  if (entries.length === 0) return <span className="text-lo">—</span>;
+
+  return (
+    <div className="grid w-full grid-cols-1 gap-1.5 sm:grid-cols-2">
+      {entries.map(([key, value]) => (
+        <div
+          key={key}
+          className="flex items-center justify-between gap-2 rounded-sm border border-white/5 px-2 py-1.5"
+        >
+          <span className="text-[11px] text-lo">
+            {SITE_CONDITION_LABELS[key] ?? formatLabel(key)}
+          </span>
+          <span
+            className={`flex items-center gap-1 font-mono text-[10px] uppercase ${
+              value ? "text-emerald-400" : "text-red-400"
+            }`}
+          >
+            {value ? <Check size={12} /> : <XIcon size={12} />}
+            {value ? "Yes" : "No"}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function PlantsList({
   clientId,
@@ -109,6 +296,7 @@ export default function PlantsList({
   const [plantsLoading, setPlantsLoading] = useState(false);
   const [plantsError, setPlantsError] = useState<string | null>(null);
   const [selectedPlant, setSelectedPlant] = useState<ApiPlant | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const [prevClientId, setPrevClientId] = useState(clientId);
   if (clientId !== prevClientId) {
@@ -129,8 +317,6 @@ export default function PlantsList({
       const plantRows = extractPlantItems(response);
 
       if (plantRows === null) {
-        // None of the known shapes matched — log the real payload so it's
-        // visible in devtools instead of silently showing "0 plants".
         console.warn(
           "[PlantsList] Unrecognized plants response shape:",
           response,
@@ -274,7 +460,7 @@ export default function PlantsList({
 
       {selectedPlant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-sm border border-white/10 bg-bg p-5">
+          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-5">
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
@@ -332,12 +518,59 @@ export default function PlantsList({
               </div>
               <div className="flex justify-between gap-4 border-b border-white/5 pb-2">
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
+                  No of modules
+                </dt>
+                <dd className="text-right font-mono text-lo">
+                  {formatValue(
+                    selectedPlant.noOfModules as JsonValue | undefined,
+                  )}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4 border-b border-white/5 pb-2">
+                <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Last service
                 </dt>
                 <dd className="text-right font-mono text-lo">
                   {formatDate(selectedPlant.lastServiceDate)}
                 </dd>
               </div>
+
+              {Array.isArray(selectedPlant.plantPhotos) &&
+                selectedPlant.plantPhotos.length > 0 && (
+                  <div className="border-b border-white/5 pb-2">
+                    <dt className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">
+                      Plant photos
+                    </dt>
+                    <dd>
+                      <PhotoRow
+                        photos={(selectedPlant.plantPhotos as ApiPlantPhoto[])
+                          .filter((photo) => !!photo.s3key)
+                          .map((photo) => ({
+                            url: s3Url(photo.s3key as string),
+                            name: photo.name,
+                            type: photo.type,
+                            size: photo.size,
+                          }))}
+                        onSelect={(i) => setLightboxIndex(i)}
+                      />
+                    </dd>
+                  </div>
+                )}
+
+              {selectedPlant.siteConditions && (
+                <div className="border-b border-white/5 pb-2">
+                  <dt className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">
+                    Site conditions
+                  </dt>
+                  <dd>
+                    <SiteConditionsGrid
+                      conditions={
+                        selectedPlant.siteConditions as unknown as ApiSiteConditions
+                      }
+                    />
+                  </dd>
+                </div>
+              )}
 
               {extraEntries(selectedPlant).map(([key, value]) => (
                 <div
@@ -354,6 +587,24 @@ export default function PlantsList({
           </div>
         </div>
       )}
+
+      {selectedPlant &&
+        lightboxIndex !== null &&
+        Array.isArray(selectedPlant.plantPhotos) &&
+        selectedPlant.plantPhotos.length > 0 && (
+          <PhotoLightbox
+            photos={(selectedPlant.plantPhotos as ApiPlantPhoto[])
+              .filter((photo) => !!photo.s3key)
+              .map((photo) => ({
+                url: s3Url(photo.s3key as string),
+                name: photo.name,
+                type: photo.type,
+                size: photo.size,
+              }))}
+            startIndex={lightboxIndex}
+            onClose={() => setLightboxIndex(null)}
+          />
+        )}
     </div>
   );
 }

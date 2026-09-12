@@ -1,4 +1,5 @@
 export interface ApiPlant {
+  noOfModules: JsonValue | undefined;
   capacityKw: number;
   plantId: string;
   lastServiceDate: string | null;
@@ -11,6 +12,8 @@ export interface ApiPlant {
   createdAt: string;
   address: string;
   latitude: number;
+  plantPhotos: string[];
+  siteConditions: string;
 }
 
 export interface PlantsListApiResponse {
@@ -72,3 +75,26 @@ export type JsonValue =
   | null
   | JsonValue[]
   | { [key: string]: JsonValue };
+
+export interface ApiPlantPhoto {
+  type?: string;
+  size?: number;
+  s3key?: string;
+  name?: string;
+}
+
+export interface ApiSiteConditions {
+  waterPumpAvailable?: boolean;
+  waterAvailable?: boolean;
+  everyModuleAccessible?: boolean;
+  walkwaysAvailable?: boolean;
+  hosePipeAvailable?: boolean;
+  [key: string]: boolean | undefined;
+}
+
+export interface PlantPhotoWithUrl {
+  url: string;
+  name?: string;
+  type?: string;
+  size?: number;
+}

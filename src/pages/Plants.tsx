@@ -325,7 +325,6 @@ function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
   );
 }
 
-// Loads the Leaflet CSS/JS from CDN once and resolves when ready.
 function loadLeaflet(): Promise<LeafletStatic> {
   const w = window as Window & { L?: LeafletStatic };
   if (w.L) return Promise.resolve(w.L);

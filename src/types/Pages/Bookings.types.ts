@@ -47,3 +47,42 @@ export type BookingRequestStatus =
   | "completed"
   | "rejected"
   | string;
+
+  export interface RawBookingItem {
+  bookingId: string;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+  notes?: string | null;
+  plantId: string;
+  bookingStatus: string;
+  service?: { type?: string | null; id?: string | null } | null;
+  schedule?: { preferredDate?: string | null } | null;
+  plant?: {
+    name?: string | null;
+    address?: string | null;
+    capacityKw?: number | null;
+  } | null;
+  assignment?: {
+    technicianId?: string | null;
+    technicianName?: string | null;
+    assignedAt?: string | null;
+  } | null;
+  visit?: {
+    status?: string | null;
+    data?: Record<string, VisitFieldValue> | null;
+  } | null;
+  rejection?: { reason?: string | null; updatedAt?: string | null } | null;
+  payment?: {
+    mode?: string | null;
+    status?: string | null;
+    amount?: number | null;
+    updatedAt?: string | null;
+  } | null;
+}
+
+export interface RawBookingListResponse {
+  items: RawBookingItem[];
+  count?: number;
+  nextToken?: string | null;
+}

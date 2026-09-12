@@ -66,3 +66,5 @@ export type TechniciansResponse =
   | undefined;
 
 export type TechnicianRecord = ApiTechnician & Record<string, unknown>;
+
+

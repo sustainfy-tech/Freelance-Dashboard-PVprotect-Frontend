@@ -72,7 +72,7 @@ export default function TechnicianDetailModal({
 
   console.log("documents", documents);
 
-  const BUCKET_NAME = "pvprotech-blogs";
+  const BUCKET_NAME = "pvprotech-bucket-new";
   return (
     <Modal title={techName} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto">

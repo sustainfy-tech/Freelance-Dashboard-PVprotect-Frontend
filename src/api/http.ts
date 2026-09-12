@@ -1,6 +1,6 @@
 import axios, { AxiosError, type Method } from "axios";
 
-export const API_BASE_URL = "https://8719-122-170-196-27.ngrok-free.app";
+export const API_BASE_URL = "https://d263-122-170-195-253.ngrok-free.app";
 
 export class ApiError extends Error {
   status: number;

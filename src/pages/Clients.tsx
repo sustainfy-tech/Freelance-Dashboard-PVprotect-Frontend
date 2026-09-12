@@ -4,7 +4,7 @@ import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
 import { ToolbarSearch } from "../components/Toolbar";
 import { listTechniciansForAdmin } from "../api/technicians.js";
-import type { ApiAppUser } from "../types/Pages/Client.types.js";
+import type { ApiAppUser, TechniciansApiResponse } from "../types/Pages/Client.types.js";
 import type { ClientRow } from "../types/Pages/Client.types.js";
 import PlantsList from "../components/Plantslist.js";
 
@@ -24,14 +24,6 @@ function formatDate(d?: string | null) {
   });
 }
 
-// Shape actually returned by the API:
-// { statusCode, data: { items: ApiAppUser[], count, scannedCount, nextToken }, message, success }
-// Kept the older shapes as fallbacks in case other endpoints/mocks still use them.
-type TechniciansApiResponse =
-  | ApiAppUser[]
-  | { technicians?: ApiAppUser[] }
-  | { items?: ApiAppUser[] }
-  | { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } };
 
 async function loadClientRows(): Promise<ClientRow[]> {
   const response = (await listTechniciansForAdmin()) as unknown as TechniciansApiResponse;

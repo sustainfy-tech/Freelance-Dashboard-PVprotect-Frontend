@@ -35,10 +35,14 @@ const n = (v: unknown, fallback = 0): number => {
 };
 
 function extractList(response: TechniciansResponse): ApiTechnician[] {
-  const r = response as any;
-  if (Array.isArray(r)) return r;
-  if (Array.isArray(r?.items)) return r.items;
-  if (Array.isArray(r?.data?.items)) return r.data.items;
+  if (Array.isArray(response)) return response;
+
+  const r = response as Record<string, unknown>;
+  if (Array.isArray(r.items)) return r.items as ApiTechnician[];
+
+  const data = r.data as Record<string, unknown> | undefined;
+  if (Array.isArray(data?.items)) return data.items as ApiTechnician[];
+
   return [];
 }
 

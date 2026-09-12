@@ -61,7 +61,6 @@ export default function Overview() {
         });
         if (!res.ok) throw new Error(`Request failed (${res.status})`);
         const data = await res.json();
-        // Handles either a raw array response or { bookings: [...] }
         const list: Booking[] = Array.isArray(data)
           ? data
           : (data.bookings ?? []);

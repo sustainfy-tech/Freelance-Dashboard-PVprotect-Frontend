@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Calendar,
@@ -25,6 +25,7 @@ import {
   addUnavailableDate,
   removeUnavailableDate,
   listSlots,
+  createSlot,
   updateSlotStatus,
   getServiceForm,
   createServiceForm,
@@ -32,9 +33,11 @@ import {
 } from "../api/services";
 import type { ApiService, ApiSlot } from "../types/Pages/Services.types";
 import type {
-  ApiFormField,
   ApiFormFieldType,
   ApiServiceForm,
+  DisplaySlot,
+  EditableField,
+  ServicesApiResponse,
 } from "../types/Pages/Services.types";
 import { SLOT_STATUSES, type SlotStatus } from "../types/Pages/Services.types";
 import clsx from "clsx";
@@ -58,7 +61,13 @@ export default function Services() {
     Record<string, ApiServiceForm | null>
   >({});
 
-  const allServices = data ?? [];
+  const allServices: ApiService[] = useMemo(() => {
+    const raw = data as ServicesApiResponse;
+    if (Array.isArray(raw)) return raw;
+    if (raw && Array.isArray(raw.items)) return raw.items;
+    return [];
+  }, [data]);
+
   const services = allServices.filter(
     (s) => !query || s.title?.toLowerCase().includes(query.toLowerCase()),
   );
@@ -73,11 +82,10 @@ export default function Services() {
     : null;
 
   useEffect(() => {
-    if (!data) return;
     let cancelled = false;
     (async () => {
       const entries = await Promise.all(
-        data.map(async (s) => {
+        allServices.map(async (s) => {
           const form = await getServiceForm(s.serviceId);
           return [s.serviceId, form] as const;
         }),
@@ -87,7 +95,7 @@ export default function Services() {
     return () => {
       cancelled = true;
     };
-  }, [data]);
+  }, [allServices]);
 
   async function toggleAvailability(s: ApiService) {
     await setServiceAvailability(s.serviceId, !s.available);
@@ -673,26 +681,27 @@ const FIELD_TYPES: { value: ApiFormFieldType; label: string }[] = [
   { value: "email", label: "Email" },
   { value: "phone", label: "Phone" },
   { value: "url", label: "URL" },
-  { value: "photo", label: "Photo" },
+  { value: "image", label: "Image" },
   { value: "document", label: "Document" },
 ];
 
 const OPTION_TYPES: ApiFormFieldType[] = ["select", "radio", "multiselect"];
 const NO_PLACEHOLDER_TYPES: ApiFormFieldType[] = [
   "checkbox",
-  "photo",
+  "image",
   "document",
 ];
 
-function genFieldId() {
+function genFieldKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto)
     return crypto.randomUUID();
   return `field_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function blankField(): ApiFormField {
+function blankField(): EditableField {
   return {
-    fieldId: genFieldId(),
+    _key: genFieldKey(),
+    name: "",
     label: "",
     type: "text",
     required: false,
@@ -716,8 +725,10 @@ function ServiceFormModal({
   const [title, setTitle] = useState(
     existingForm?.title ?? `${service.title} — intake form`,
   );
-  const [fields, setFields] = useState<ApiFormField[]>(
-    existingForm?.fields?.length ? existingForm.fields : [blankField()],
+  const [fields, setFields] = useState<EditableField[]>(
+    existingForm?.fields?.length
+      ? existingForm.fields.map((f) => ({ ...f, _key: genFieldKey() }))
+      : [blankField()],
   );
 
   const [saving, setSaving] = useState(false);
@@ -726,18 +737,18 @@ function ServiceFormModal({
     Record<string, string>
   >({});
 
-  function updateField(fieldId: string, patch: Partial<ApiFormField>) {
+  function updateField(_key: string, patch: Partial<EditableField>) {
     setFields((prev) =>
-      prev.map((f) => (f.fieldId === fieldId ? { ...f, ...patch } : f)),
+      prev.map((f) => (f._key === _key ? { ...f, ...patch } : f)),
     );
   }
 
-  function addOption(fieldId: string) {
-    const value = (newOptionByField[fieldId] ?? "").trim();
+  function addOption(_key: string) {
+    const value = (newOptionByField[_key] ?? "").trim();
     if (!value) return;
     setFields((prev) =>
       prev.map((f) =>
-        f.fieldId === fieldId
+        f._key === _key
           ? {
               ...f,
               options: (f.options ?? []).includes(value)
@@ -747,13 +758,13 @@ function ServiceFormModal({
           : f,
       ),
     );
-    setNewOptionByField((prev) => ({ ...prev, [fieldId]: "" }));
+    setNewOptionByField((prev) => ({ ...prev, [_key]: "" }));
   }
 
-  function removeOption(fieldId: string, option: string) {
+  function removeOption(_key: string, option: string) {
     setFields((prev) =>
       prev.map((f) =>
-        f.fieldId === fieldId
+        f._key === _key
           ? { ...f, options: (f.options ?? []).filter((o) => o !== option) }
           : f,
       ),
@@ -764,12 +775,12 @@ function ServiceFormModal({
     setFields((prev) => [...prev, blankField()]);
   }
 
-  function removeField(fieldId: string) {
-    setFields((prev) => prev.filter((f) => f.fieldId !== fieldId));
+  function removeField(_key: string) {
+    setFields((prev) => prev.filter((f) => f._key !== _key));
     setNewOptionByField((prev) => {
-      if (!(fieldId in prev)) return prev;
+      if (!(_key in prev)) return prev;
       const next = { ...prev };
-      delete next[fieldId];
+      delete next[_key];
       return next;
     });
   }
@@ -783,11 +794,21 @@ function ServiceFormModal({
       setErr("At least one field is required.");
       return;
     }
+    const seenNames = new Set<string>();
     for (const f of fields) {
       if (!f.label.trim()) {
         setErr("Every field needs a label.");
         return;
       }
+      if (!f.name.trim()) {
+        setErr(`"${f.label}" needs a name.`);
+        return;
+      }
+      if (seenNames.has(f.name.trim())) {
+        setErr(`Field name "${f.name.trim()}" is used more than once.`);
+        return;
+      }
+      seenNames.add(f.name.trim());
       if (
         OPTION_TYPES.includes(f.type) &&
         (!f.options || f.options.length === 0)
@@ -803,9 +824,12 @@ function ServiceFormModal({
       const payload = {
         title: title.trim(),
         fields: fields.map((f) => ({
-          ...f,
+          name: f.name.trim(),
           label: f.label.trim(),
+          type: f.type,
+          required: f.required,
           placeholder: f.placeholder?.trim() || undefined,
+          options: f.options,
         })),
       };
       const saved = isEditing
@@ -846,7 +870,7 @@ function ServiceFormModal({
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f, i) => (
               <div
-                key={f.fieldId}
+                key={f._key}
                 className="space-y-2 border border-border bg-surface2 p-3"
               >
                 <div
@@ -856,7 +880,7 @@ function ServiceFormModal({
                   <input
                     value={f.label}
                     onChange={(e) =>
-                      updateField(f.fieldId, { label: e.target.value })
+                      updateField(f._key, { label: e.target.value })
                     }
                     className="input w-full"
                     placeholder={`Field ${i + 1} label`}
@@ -864,7 +888,7 @@ function ServiceFormModal({
                   <select
                     value={f.type}
                     onChange={(e) =>
-                      updateField(f.fieldId, {
+                      updateField(f._key, {
                         type: e.target.value as ApiFormFieldType,
                       })
                     }
@@ -882,7 +906,7 @@ function ServiceFormModal({
                   </select>
                   <button
                     type="button"
-                    onClick={() => removeField(f.fieldId)}
+                    onClick={() => removeField(f._key)}
                     disabled={fields.length === 1}
                     className="mt-2 text-faint hover:text-danger disabled:opacity-30"
                     aria-label="Remove field"
@@ -891,11 +915,20 @@ function ServiceFormModal({
                   </button>
                 </div>
 
+                <input
+                  value={f.name}
+                  onChange={(e) =>
+                    updateField(f._key, { name: e.target.value })
+                  }
+                  className="input w-full text-white placeholder:text-white"
+                  placeholder="Field name (e.g. Before)"
+                />
+
                 {!NO_PLACEHOLDER_TYPES.includes(f.type) && (
                   <input
                     value={f.placeholder ?? ""}
                     onChange={(e) =>
-                      updateField(f.fieldId, { placeholder: e.target.value })
+                      updateField(f._key, { placeholder: e.target.value })
                     }
                     className="input text-white placeholder:text-white"
                     placeholder="Placeholder text shown in the field (optional)"
@@ -908,15 +941,13 @@ function ServiceFormModal({
                       type="checkbox"
                       checked={!!f.required}
                       onChange={(e) =>
-                        updateField(f.fieldId, { required: e.target.checked })
+                        updateField(f._key, { required: e.target.checked })
                       }
                     />
                     Required
                   </label>
                 </div>
 
-                {/* Select / radio / multi-select — add choices one at a time as chips,
-                    instead of a single comma-separated input. */}
                 {OPTION_TYPES.includes(f.type) && (
                   <div>
                     <div className="mb-1.5 flex flex-wrap gap-1.5">
@@ -929,7 +960,7 @@ function ServiceFormModal({
                             {opt}
                             <button
                               type="button"
-                              onClick={() => removeOption(f.fieldId, opt)}
+                              onClick={() => removeOption(f._key, opt)}
                               className="text-faint hover:text-danger"
                             >
                               ×
@@ -944,17 +975,17 @@ function ServiceFormModal({
                     </div>
                     <div className="flex gap-2">
                       <input
-                        value={newOptionByField[f.fieldId] ?? ""}
+                        value={newOptionByField[f._key] ?? ""}
                         onChange={(e) =>
                           setNewOptionByField((prev) => ({
                             ...prev,
-                            [f.fieldId]: e.target.value,
+                            [f._key]: e.target.value,
                           }))
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            addOption(f.fieldId);
+                            addOption(f._key);
                           }
                         }}
                         className="input flex-1 text-white placeholder:text-white"
@@ -962,7 +993,7 @@ function ServiceFormModal({
                       />
                       <button
                         type="button"
-                        onClick={() => addOption(f.fieldId)}
+                        onClick={() => addOption(f._key)}
                         className="rounded-sm border border-border bg-surface2 px-3 py-2 font-mono text-[11px] uppercase text-lo hover:text-hi"
                       >
                         Add
@@ -1024,6 +1055,36 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * listSlots' response shape isn't guaranteed to be a bare array — some
+ * endpoints in this API wrap collections (see ServicesApiResponse for
+ * listServices). Normalize defensively so a wrapped response never reaches
+ * `.map` as a non-array and crashes the component.
+ */
+function normalizeSlots(raw: unknown): ApiSlot[] {
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === "object") {
+    const obj = raw as { items?: unknown; slots?: unknown; data?: unknown };
+    if (Array.isArray(obj.items)) return obj.items as ApiSlot[];
+    if (Array.isArray(obj.slots)) return obj.slots as ApiSlot[];
+    if (Array.isArray(obj.data)) return obj.data as ApiSlot[];
+  }
+  return [];
+}
+
+function mergeDaySlots(
+  defaultTimes: string[] | undefined,
+  fetchedSlots: ApiSlot[],
+): DisplaySlot[] {
+  const byTime = new Map(fetchedSlots.map((s) => [s.time, s]));
+  const times = (defaultTimes ?? []).slice().sort();
+  return times.map((time) => {
+    const existing = byTime.get(time);
+    if (existing) return existing;
+    return { slotId: "", time, status: "open" as SlotStatus, isVirtual: true };
+  });
+}
+
 const STATUS_STYLES: Record<SlotStatus, string> = {
   open: "border-teal-dim/40 bg-teal-soft text-teal",
   blocked: "border-border bg-surface3 text-faint",
@@ -1035,7 +1096,7 @@ function SlotStatusControl({
   busy,
   onChange,
 }: {
-  slot: ApiSlot;
+  slot: DisplaySlot;
   busy: boolean;
   onChange: (status: SlotStatus) => void;
 }) {
@@ -1100,28 +1161,35 @@ function ServiceDetail({
 }) {
   const [newDate, setNewDate] = useState("");
   const [busy, setBusy] = useState(false);
-
   const [selectedDate, setSelectedDate] = useState(todayStr());
-  const [daySlots, setDaySlots] = useState<ApiSlot[]>([]);
-  const [daySlotsLoading, setDaySlotsLoading] = useState(true);
+
+  const slotsKey = `${service.serviceId}::${selectedDate}`;
+  const [slotsData, setSlotsData] = useState<{
+    key: string;
+    slots: ApiSlot[];
+  } | null>(null);
+
+  const daySlotsLoading = slotsData?.key !== slotsKey;
+  const fetchedSlots = slotsData?.key === slotsKey ? slotsData.slots : [];
+
+  const isDateUnavailable = service.unavailableDates?.includes(selectedDate);
+  const daySlots = mergeDaySlots(service.defaultTimes, fetchedSlots);
 
   useEffect(() => {
     let cancelled = false;
-    listSlots(service.serviceId, selectedDate)
-      .then((slots: ApiSlot[]) => {
-        if (!cancelled) setDaySlots(slots);
-      })
-      .finally(() => {
-        if (!cancelled) setDaySlotsLoading(false);
-      });
+    listSlots(service.serviceId, selectedDate).then((slots) => {
+      if (!cancelled) {
+        setSlotsData({ key: slotsKey, slots: normalizeSlots(slots) });
+      }
+    });
     return () => {
       cancelled = true;
     };
-  }, [service.serviceId, selectedDate, service.defaultTimes]);
+  }, [service.serviceId, selectedDate, slotsKey]);
 
   async function refetchDay() {
     const slots = await listSlots(service.serviceId, selectedDate);
-    setDaySlots(slots);
+    setSlotsData({ key: slotsKey, slots: normalizeSlots(slots) });
   }
 
   async function addDate() {
@@ -1148,10 +1216,26 @@ function ServiceDetail({
     }
   }
 
-  async function setSlotStatus(slot: ApiSlot, status: SlotStatus) {
+  async function setSlotStatus(slot: DisplaySlot, status: SlotStatus) {
     setBusy(true);
     try {
-      await updateSlotStatus(service.serviceId, slot.slotId, status);
+      if (slot.isVirtual) {
+        await createSlot(service.serviceId, {
+          date: selectedDate,
+          time: slot.time,
+        });
+        if (status !== "open") {
+          const fresh = normalizeSlots(
+            await listSlots(service.serviceId, selectedDate),
+          );
+          const created = fresh.find((s) => s.time === slot.time);
+          if (created) {
+            await updateSlotStatus(service.serviceId, created.slotId, status);
+          }
+        }
+      } else {
+        await updateSlotStatus(service.serviceId, slot.slotId, status);
+      }
       await refetchDay();
     } finally {
       setBusy(false);
@@ -1161,7 +1245,6 @@ function ServiceDetail({
   return (
     <Modal title={service.title} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto">
-        {/* Unavailable dates — whole days off, unchanged */}
         <section>
           <p className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-faint">
             <Calendar size={12} /> Unavailable dates
@@ -1207,7 +1290,6 @@ function ServiceDetail({
           </div>
         </section>
 
-        {/* Per-day view — pick a date, set open/blocked/booked per slot as an exception */}
         <section>
           <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">
             Manage a day
@@ -1215,12 +1297,16 @@ function ServiceDetail({
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setDaySlotsLoading(true);
-            }}
+            onChange={(e) => setSelectedDate(e.target.value)}
             className="input mb-3 w-full"
           />
+
+          {isDateUnavailable && (
+            <p className="mb-2 font-mono text-[11px] text-faint">
+              This date is marked unavailable — slots below won't be bookable
+              until it's removed above.
+            </p>
+          )}
 
           {daySlotsLoading && (
             <p className="text-[12px] text-faint">Loading slots…</p>
@@ -1230,7 +1316,7 @@ function ServiceDetail({
             <div className="space-y-1.5">
               {daySlots.map((slot) => (
                 <div
-                  key={slot.slotId}
+                  key={slot.time}
                   className="flex items-center justify-between border border-border bg-surface2 px-3 py-2"
                 >
                   <span className="font-mono text-[12px] text-hi">
@@ -1245,7 +1331,8 @@ function ServiceDetail({
               ))}
               {daySlots.length === 0 && (
                 <p className="text-[12px] text-faint">
-                  No default times set — add some above.
+                  No default times set for this service — add some via the edit
+                  (pencil) icon.
                 </p>
               )}
             </div>

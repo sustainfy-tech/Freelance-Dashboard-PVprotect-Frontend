@@ -6,6 +6,8 @@ import {
   X,
   FileText,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
@@ -19,60 +21,21 @@ import { listAprovedTechnicians } from "../api/technicians";
 import type {
   ApiBookingRequest,
   BookingRequestStatus,
+  RawBookingListResponse,
 } from "../types/Pages/Bookings.types";
 import type { ApiTechnician } from "../types/Pages/Technicians.types";
 import type {
   VisitFileValue,
   VisitFieldValue,
   BookingRequestWithVisitData,
+  RawBookingItem,
 } from "../types/Pages/Bookings.types";
 import clsx from "clsx";
 
 const BUCKET_NAME = "pvprotech-bucket-new";
 const AWS_REGION = "ap-south-1";
+const PAGE_SIZE = 10;
 
-// ---- Raw API shape (as returned by GET /bookings) ----
-interface RawBookingItem {
-  bookingId: string;
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-  notes?: string | null;
-  plantId: string;
-  bookingStatus: string;
-  service?: { type?: string | null; id?: string | null } | null;
-  schedule?: { preferredDate?: string | null } | null;
-  plant?: {
-    name?: string | null;
-    address?: string | null;
-    capacityKw?: number | null;
-  } | null;
-  assignment?: {
-    technicianId?: string | null;
-    technicianName?: string | null;
-    assignedAt?: string | null;
-  } | null;
-  visit?: {
-    status?: string | null;
-    data?: Record<string, VisitFieldValue> | null;
-  } | null;
-  rejection?: { reason?: string | null; updatedAt?: string | null } | null;
-  payment?: {
-    mode?: string | null;
-    status?: string | null;
-    amount?: number | null;
-    updatedAt?: string | null;
-  } | null;
-}
-
-interface RawBookingListResponse {
-  items: RawBookingItem[];
-  count?: number;
-  nextToken?: string | null;
-}
-
-// Maps the nested API response onto the flat shape the rest of this
-// component (table columns, details modal, visit modal) expects.
 function normalizeBooking(raw: RawBookingItem): BookingRequestWithVisitData {
   return {
     bookingId: raw.bookingId,
@@ -156,14 +119,19 @@ function formatDate(value?: string | null) {
 
 export default function Bookings() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<BookingRequestStatus | "all">(
-    "pending",
-  );
+  const [status, setStatus] = useState<BookingRequestStatus | "all">("pending");
+  const [page, setPage] = useState(1);
+  const [pageResetKey, setPageResetKey] = useState({ query, status });
+  if (pageResetKey.query !== query || pageResetKey.status !== status) {
+    setPageResetKey({ query, status });
+    setPage(1);
+  }
   const [assignTarget, setAssignTarget] = useState<ApiBookingRequest | null>(
     null,
   );
-  const [detailsTarget, setDetailsTarget] =
-    useState<ApiBookingRequest | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<ApiBookingRequest | null>(
+    null,
+  );
   const [visitTarget, setVisitTarget] = useState<ApiBookingRequest | null>(
     null,
   );
@@ -211,6 +179,15 @@ export default function Bookings() {
         .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [rows, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  const currentPage = Math.min(page, totalPages);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
 
   const visitTargetExtended = visitTarget as BookingRequestWithVisitData | null;
 
@@ -400,13 +377,41 @@ export default function Bookings() {
         <>
           <DataTable
             columns={columns}
-            rows={filtered}
+            rows={paginated}
             rowKey={(b) => b.bookingId}
           />
-          <p className="mt-3 font-mono text-[11px] text-faint">
-            Showing {filtered.length} of {rows.length} requests{" "}
-            {status !== "all" && `· status: ${status}`}
-          </p>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="font-mono text-[11px] text-faint">
+              Showing{" "}
+              {filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–
+              {Math.min(currentPage * PAGE_SIZE, filtered.length)} of{" "}
+              {filtered.length} requests{" "}
+              {status !== "all" && `· status: ${status}`}
+            </p>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1 rounded-sm border border-surface3 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
+                >
+                  <ChevronLeft size={13} /> Prev
+                </button>
+                <span className="font-mono text-[11px] text-faint">
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="flex items-center gap-1 rounded-sm border border-surface3 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
+                >
+                  Next <ChevronRight size={13} />
+                </button>
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -424,9 +429,7 @@ export default function Bookings() {
           </label>
 
           {techniciansLoading && (
-            <p className="mb-4 text-[12px] text-faint">
-              Loading technicians…
-            </p>
+            <p className="mb-4 text-[12px] text-faint">Loading technicians…</p>
           )}
           {!techniciansLoading && techniciansError && (
             <p className="mb-4 text-[12px] text-danger">
@@ -494,10 +497,7 @@ export default function Bookings() {
               label="Status"
               value={<StatusBadge status={detailsTarget.status} />}
             />
-            <DetailRow
-              label="Service type"
-              value={detailsTarget.serviceType}
-            />
+            <DetailRow label="Service type" value={detailsTarget.serviceType} />
             <DetailRow label="Plant name" value={detailsTarget.plantName} />
             <DetailRow
               label="Plant ID"
@@ -679,9 +679,7 @@ function VisitDataView({
                 <button
                   key={label}
                   type="button"
-                  onClick={() =>
-                    setLightbox({ url: s3Url(file.s3key), label })
-                  }
+                  onClick={() => setLightbox({ url: s3Url(file.s3key), label })}
                   className="group block overflow-hidden rounded-sm border border-border bg-surface2 text-left"
                 >
                   <img

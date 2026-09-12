@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(() => readStoredAdmin());
   const isLoading = false;
 
-  // Keep other tabs in sync if the admin logs in/out elsewhere.
   useEffect(() => {
     function onStorage(e: StorageEvent) {
       if (e.key === ADMIN_STORAGE_KEY) {

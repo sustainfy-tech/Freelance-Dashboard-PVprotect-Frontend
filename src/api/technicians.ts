@@ -10,7 +10,7 @@ export function listTechniciansForAdmin() {
 }
 
 export function listAprovedTechnicians() {
-  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?status=active&role=technician");
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?status=approved&role=technician");
 }
 
 export function listAllTechnicians() {
@@ -18,7 +18,7 @@ export function listAllTechnicians() {
 }
 
 export function listTechnicianRequests() {
-  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/requests");
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?status=submit_for_review&role=technician");
 }
 
 export function getPlantsByClientId(userId: string) {
