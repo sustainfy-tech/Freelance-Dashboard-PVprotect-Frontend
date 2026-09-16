@@ -1,6 +1,6 @@
 import axios, { AxiosError, type Method } from "axios";
 
-export const API_BASE_URL = "https://d263-122-170-195-253.ngrok-free.app";
+export const API_BASE_URL = import.meta.env.VITE_APP_SERVER_BASE_URL;
 
 export class ApiError extends Error {
   status: number;
@@ -56,7 +56,7 @@ function extractMessage(data: unknown, fallback: string): string {
 
 export async function apiRequest<T>(
   path: string,
-  { method = "GET", body, query }: RequestOptions = {},
+  { method = "GET", body, query }: RequestOptions = {}
 ): Promise<T> {
   const url = API_BASE_URL + path;
 
@@ -97,7 +97,7 @@ export async function apiRequest<T>(
 
       const message = extractMessage(
         parsed,
-        `${method} ${url} failed with ${status}`,
+        `${method} ${url} failed with ${status}`
       );
       throw new ApiError(message, status, parsed);
     }
