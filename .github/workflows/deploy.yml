@@ -119,7 +119,7 @@ jobs:
       # --------------------------------------------------
       - name: Health check
         run: |
-          if ! curl -f http://127.0.0.1:5173; then
+          if ! curl -f http://localhost:5173; then
             echo "Frontend health check failed."
             docker logs "$CONTAINER_NAME" || true
             exit 1
