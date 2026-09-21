@@ -6,13 +6,8 @@ COPY package*.json ./
 
 RUN npm ci
 
-# Copy application source
 COPY . .
 
-# Give Node a reasonable heap limit
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
-# Build Vite application
 RUN npm run build
 
 
