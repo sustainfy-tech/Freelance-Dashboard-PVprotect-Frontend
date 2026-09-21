@@ -15,15 +15,15 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # --------------------------------------------------
+      # ============================================================
       # 1. Checkout source code
-      # --------------------------------------------------
+      # ============================================================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --------------------------------------------------
+      # ============================================================
       # 2. Configure AWS credentials
-      # --------------------------------------------------
+      # ============================================================
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -31,58 +31,75 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # --------------------------------------------------
+      # ============================================================
       # 3. Login to Amazon ECR
-      # --------------------------------------------------
+      # ============================================================
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # --------------------------------------------------
+      # ============================================================
       # 4. Set image variables
-      # --------------------------------------------------
+      # ============================================================
       - name: Set image variables
         id: image
         run: |
           echo "registry=${{ steps.login-ecr.outputs.registry }}" >> "$GITHUB_OUTPUT"
           echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
-      # --------------------------------------------------
-      # 5. Build Docker image
-      # --------------------------------------------------
+      # ============================================================
+      # 5. Verify frontend API URL secret exists
+      # ============================================================
+      - name: Verify frontend environment
+        env:
+          VITE_APP_SERVER_BASE_URL: ${{ secrets.VITE_APP_SERVER_BASE_URL }}
+        run: |
+          if [ -z "$VITE_APP_SERVER_BASE_URL" ]; then
+            echo "ERROR: VITE_APP_SERVER_BASE_URL GitHub Secret is not configured."
+            exit 1
+          fi
+
+          echo "VITE_APP_SERVER_BASE_URL is configured."
+
+      # ============================================================
+      # 6. Build Docker image
+      # ============================================================
       - name: Build Docker image
+        env:
+          VITE_APP_SERVER_BASE_URL: ${{ secrets.VITE_APP_SERVER_BASE_URL }}
         run: |
           docker build \
+            --build-arg VITE_APP_SERVER_BASE_URL="$VITE_APP_SERVER_BASE_URL" \
             -t ${{ steps.image.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }} \
             .
 
-      # --------------------------------------------------
-      # 6. Push Docker image to ECR
-      # --------------------------------------------------
+      # ============================================================
+      # 7. Push image to ECR
+      # ============================================================
       - name: Push Docker image to ECR
         run: |
           docker push \
             ${{ steps.image.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}
 
-      # --------------------------------------------------
-      # 7. Pull image from ECR
-      # --------------------------------------------------
+      # ============================================================
+      # 8. Pull image from ECR
+      # ============================================================
       - name: Pull Docker image
         run: |
           docker pull \
             ${{ steps.image.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}
 
-      # --------------------------------------------------
-      # 8. Stop existing container
-      # --------------------------------------------------
+      # ============================================================
+      # 9. Stop existing container
+      # ============================================================
       - name: Stop existing container
         run: |
           docker stop "$CONTAINER_NAME" || true
           docker rm "$CONTAINER_NAME" || true
 
-      # --------------------------------------------------
-      # 9. Start new container
-      # --------------------------------------------------
+      # ============================================================
+      # 10. Start new container
+      # ============================================================
       - name: Start frontend container
         run: |
           docker run -d \
@@ -91,17 +108,17 @@ jobs:
             --restart unless-stopped \
             ${{ steps.image.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.image.outputs.tag }}
 
-      # --------------------------------------------------
-      # 10. Wait for application
-      # --------------------------------------------------
+      # ============================================================
+      # 11. Wait for application
+      # ============================================================
       - name: Wait for application
         run: |
           echo "Waiting for frontend to start..."
           sleep 5
 
-      # --------------------------------------------------
-      # 11. Check container
-      # --------------------------------------------------
+      # ============================================================
+      # 12. Check container
+      # ============================================================
       - name: Check container
         run: |
           if ! docker ps \
@@ -110,31 +127,41 @@ jobs:
             | grep -q "$CONTAINER_NAME"; then
 
             echo "Frontend container failed to start."
+
             docker logs "$CONTAINER_NAME" || true
+
             exit 1
           fi
 
-      # --------------------------------------------------
-      # 12. Health check
-      # --------------------------------------------------
+          echo "Frontend container is running."
+
+      # ============================================================
+      # 13. Health check
+      # ============================================================
       - name: Health check
         run: |
+          echo "Checking frontend..."
+
           if ! curl -f http://localhost:5173; then
             echo "Frontend health check failed."
+
             docker logs "$CONTAINER_NAME" || true
+
             exit 1
           fi
 
-      # --------------------------------------------------
-      # 13. Cleanup old Docker images
-      # --------------------------------------------------
+          echo "Frontend health check passed."
+
+      # ============================================================
+      # 14. Cleanup unused Docker images
+      # ============================================================
       - name: Cleanup Docker images
         run: |
           docker image prune -af
 
-      # --------------------------------------------------
-      # 14. Final status
-      # --------------------------------------------------
+      # ============================================================
+      # 15. Final status
+      # ============================================================
       - name: Deployment successful
         run: |
           echo "========================================="

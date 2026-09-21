@@ -1,6 +1,15 @@
 import axios, { AxiosError, type Method } from "axios";
 
-export const API_BASE_URL = import.meta.env.VITE_APP_SERVER_BASE_URL;
+export const API_BASE_URL = import.meta.env.VITE_APP_SERVER_BASE_URL?.replace(
+  /\/+$/,
+  ""
+);
+
+if (!API_BASE_URL) {
+  throw new Error(
+    "VITE_APP_SERVER_BASE_URL is not configured. Check the deployment environment."
+  );
+}
 
 export class ApiError extends Error {
   status: number;
@@ -58,7 +67,8 @@ export async function apiRequest<T>(
   path: string,
   { method = "GET", body, query }: RequestOptions = {}
 ): Promise<T> {
-  const url = API_BASE_URL + path;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${API_BASE_URL}${normalizedPath}`;
 
   try {
     const res = await client.request<unknown>({
@@ -80,12 +90,14 @@ export async function apiRequest<T>(
 
     return parsed as T;
   } catch (err) {
-    if (err instanceof ApiError) throw err;
+    if (err instanceof ApiError) {
+      throw err;
+    }
 
     if (axios.isAxiosError(err)) {
       const axiosErr = err as AxiosError<unknown>;
       if (!axiosErr.response) {
-        throw new ApiError(`Network error calling.`, 0, axiosErr);
+        throw new ApiError(`Network error calling ${url}`, 0, axiosErr);
       }
 
       const { status, data: parsed } = axiosErr.response;
@@ -99,8 +111,10 @@ export async function apiRequest<T>(
         parsed,
         `${method} ${url} failed with ${status}`
       );
+
       throw new ApiError(message, status, parsed);
     }
+
     throw new ApiError(`${method} ${url} failed unexpectedly.`, 0, err);
   }
 }

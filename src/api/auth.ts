@@ -4,7 +4,10 @@ import type { AuthPayload } from "../types/context/AuthContext.types";
 export function login(verifiedUserId: string, password: string) {
   return apiRequest<AuthPayload>("/api/v1/admin/auth/login", {
     method: "POST",
-    body: { verifiedUserId, password },
+    body: {
+      verifiedUserId,
+      password,
+    },
   });
 }
 
