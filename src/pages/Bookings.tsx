@@ -32,7 +32,7 @@ import type {
 } from "../types/Pages/Bookings.types";
 import clsx from "clsx";
 
-const BUCKET_NAME = "pvprotech-bucket-new";
+const BUCKET_NAME = "mypvbucket1";
 const AWS_REGION = "ap-south-1";
 const PAGE_SIZE = 10;
 
@@ -127,13 +127,13 @@ export default function Bookings() {
     setPage(1);
   }
   const [assignTarget, setAssignTarget] = useState<ApiBookingRequest | null>(
-    null,
+    null
   );
   const [detailsTarget, setDetailsTarget] = useState<ApiBookingRequest | null>(
-    null,
+    null
   );
   const [visitTarget, setVisitTarget] = useState<ApiBookingRequest | null>(
-    null,
+    null
   );
   const [visitMode, setVisitMode] = useState<"visit" | "reason">("visit");
   const [selectedTechnician, setSelectedTechnician] = useState("");
@@ -142,7 +142,7 @@ export default function Bookings() {
 
   const { data, loading, error, refetch } = useApiData(
     () => listBookingRequestsForAdmin(status === "all" ? undefined : status),
-    [status],
+    [status]
   );
 
   const {
@@ -164,9 +164,7 @@ export default function Bookings() {
 
   const rows = useMemo(() => {
     const raw = data as RawBookingListResponse | RawBookingItem[] | null;
-    const items: RawBookingItem[] = Array.isArray(raw)
-      ? raw
-      : (raw?.items ?? []);
+    const items: RawBookingItem[] = Array.isArray(raw) ? raw : raw?.items ?? [];
     return items.map(normalizeBooking);
   }, [data]);
 
@@ -176,7 +174,7 @@ export default function Bookings() {
     return rows.filter((b) =>
       [b.bookingId, b.plantName, b.plantAddress, b.serviceType, b.plantId]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
+        .some((v) => String(v).toLowerCase().includes(q))
     );
   }, [rows, query]);
 
@@ -212,7 +210,7 @@ export default function Bookings() {
 
     if (!technicianName) {
       setAssignError(
-        "Could not resolve the selected technician's name. Try reselecting them.",
+        "Could not resolve the selected technician's name. Try reselecting them."
       );
       return;
     }
@@ -223,13 +221,13 @@ export default function Bookings() {
       await assignTechnician(
         assignTarget.bookingId,
         selectedTechnician,
-        technicianName,
+        technicianName
       );
       setAssignTarget(null);
       refetch();
     } catch (err) {
       setAssignError(
-        err instanceof Error ? err.message : "Could not assign technician.",
+        err instanceof Error ? err.message : "Could not assign technician."
       );
     } finally {
       setAssigning(false);
@@ -417,7 +415,9 @@ export default function Bookings() {
 
       {assignTarget && (
         <Modal
-          title={`Assign technician — ${assignTarget.plantName ?? assignTarget.bookingId}`}
+          title={`Assign technician — ${
+            assignTarget.plantName ?? assignTarget.bookingId
+          }`}
           onClose={() => setAssignTarget(null)}
         >
           <p className="mb-4 text-[13px] text-lo">
@@ -484,7 +484,9 @@ export default function Bookings() {
 
       {detailsTarget && (
         <Modal
-          title={`Request — ${detailsTarget.plantName ?? detailsTarget.bookingId}`}
+          title={`Request — ${
+            detailsTarget.plantName ?? detailsTarget.bookingId
+          }`}
           onClose={() => setDetailsTarget(null)}
         >
           <dl className="space-y-3 text-[13px]">
@@ -548,8 +550,12 @@ export default function Bookings() {
         <Modal
           title={
             visitMode === "visit"
-              ? `Visit data — ${visitTargetExtended.plantName ?? visitTargetExtended.bookingId}`
-              : `Rejection reason — ${visitTargetExtended.plantName ?? visitTargetExtended.bookingId}`
+              ? `Visit data — ${
+                  visitTargetExtended.plantName ?? visitTargetExtended.bookingId
+                }`
+              : `Rejection reason — ${
+                  visitTargetExtended.plantName ?? visitTargetExtended.bookingId
+                }`
           }
           onClose={() => setVisitTarget(null)}
           widthClassName={
@@ -605,15 +611,15 @@ function VisitDataView({
   const entries = Object.entries(visitData ?? {});
 
   const fileEntries = entries.filter(
-    (entry): entry is [string, VisitFileValue] => isVisitFile(entry[1]),
+    (entry): entry is [string, VisitFileValue] => isVisitFile(entry[1])
   );
   const plainEntries = entries.filter((entry) => !isVisitFile(entry[1]));
 
   const imageEntries = fileEntries.filter(([, file]) =>
-    file.type?.startsWith("image/"),
+    file.type?.startsWith("image/")
   );
   const docEntries = fileEntries.filter(
-    ([, file]) => !file.type?.startsWith("image/"),
+    ([, file]) => !file.type?.startsWith("image/")
   );
 
   const hasVisitData = entries.length > 0;

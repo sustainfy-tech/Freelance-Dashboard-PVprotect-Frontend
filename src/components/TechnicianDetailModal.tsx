@@ -50,7 +50,7 @@ export default function TechnicianDetailModal({
   const techName = s(tech.user_name ?? tech.name, "Technician");
 
   const infoEntries = Object.entries(tech).filter(
-    ([key]) => !HIDDEN_KEYS.has(key),
+    ([key]) => !HIDDEN_KEYS.has(key)
   );
   const documents = normalizeDocuments(tech.documents);
 
@@ -63,7 +63,7 @@ export default function TechnicianDetailModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to approve technician",
+        err instanceof Error ? err.message : "Failed to approve technician"
       );
     } finally {
       setApproving(false);
@@ -72,7 +72,7 @@ export default function TechnicianDetailModal({
 
   console.log("documents", documents);
 
-  const BUCKET_NAME = "pvprotech-bucket-new";
+  const BUCKET_NAME = "mypvbucket1";
   return (
     <Modal title={techName} onClose={onClose}>
       <div className="max-h-[70vh] space-y-6 overflow-y-auto">

@@ -25,7 +25,7 @@ import type {
 } from "../types/Pages/Plant.types";
 
 // S3 bucket details used to resolve an s3key into a viewable image URL.
-const BUCKET_NAME = "pvprotech-bucket-new";
+const BUCKET_NAME = "mypvbucket1";
 const AWS_REGION = "ap-south-1";
 
 function s3Url(s3key: string) {
@@ -256,7 +256,7 @@ function PhotoLightbox({
 
 function SiteConditionsGrid({ conditions }: { conditions: ApiSiteConditions }) {
   const entries = Object.entries(conditions).filter(
-    ([, v]) => typeof v === "boolean",
+    ([, v]) => typeof v === "boolean"
   ) as [string, boolean][];
 
   if (entries.length === 0) return <span className="text-lo">—</span>;
@@ -319,13 +319,13 @@ export default function PlantsList({
       if (plantRows === null) {
         console.warn(
           "[PlantsList] Unrecognized plants response shape:",
-          response,
+          response
         );
       }
       setPlants(plantRows ?? []);
     } catch (err) {
       setPlantsError(
-        err instanceof Error ? err.message : "Failed to fetch plants",
+        err instanceof Error ? err.message : "Failed to fetch plants"
       );
       setPlants([]);
     } finally {
@@ -346,13 +346,13 @@ export default function PlantsList({
       (p) =>
         (p.plantName ?? "").toLowerCase().includes(q) ||
         formatAddress(p.address).toLowerCase().includes(q) ||
-        p.plantId.toLowerCase().includes(q),
+        p.plantId.toLowerCase().includes(q)
     );
   }, [query, plants]);
 
   const extraEntries = (plant: ApiPlant): [string, JsonValue][] =>
     Object.entries(plant).filter(
-      ([key, value]) => !KNOWN_PLANT_KEYS.has(key) && value !== undefined,
+      ([key, value]) => !KNOWN_PLANT_KEYS.has(key) && value !== undefined
     ) as [string, JsonValue][];
 
   return (
@@ -364,7 +364,9 @@ export default function PlantsList({
           description={
             plantsLoading
               ? "Loading plants…"
-              : `${filtered.length} of ${plants.length} plant${plants.length === 1 ? "" : "s"} shown.`
+              : `${filtered.length} of ${plants.length} plant${
+                  plants.length === 1 ? "" : "s"
+                } shown.`
           }
           actions={
             <div className="flex items-center gap-2">
@@ -397,7 +399,9 @@ export default function PlantsList({
           <p className="font-mono text-[11px] text-faint">
             {plantsLoading
               ? "Loading plants…"
-              : `${filtered.length} of ${plants.length} plant${plants.length === 1 ? "" : "s"} shown.`}
+              : `${filtered.length} of ${plants.length} plant${
+                  plants.length === 1 ? "" : "s"
+                } shown.`}
           </p>
           <button
             onClick={() => fetchPlants(clientId)}
@@ -522,7 +526,7 @@ export default function PlantsList({
                 </dt>
                 <dd className="text-right font-mono text-lo">
                   {formatValue(
-                    selectedPlant.noOfModules as JsonValue | undefined,
+                    selectedPlant.noOfModules as JsonValue | undefined
                   )}
                 </dd>
               </div>
