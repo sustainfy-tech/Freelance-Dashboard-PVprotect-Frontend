@@ -70,8 +70,6 @@ export default function TechnicianDetailModal({
     }
   }
 
-  console.log("documents", documents);
-
   const BUCKET_NAME = "mypvbucket1";
   return (
     <Modal title={techName} onClose={onClose}>
