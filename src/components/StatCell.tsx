@@ -19,28 +19,31 @@ export default function StatCell({
   accent = "gold",
 }: StatCellProps) {
   return (
-    <div className="card-shadow relative overflow-hidden border border-border bg-surface p-5">
+    <div className="card-shadow relative min-w-0 overflow-hidden border border-border bg-surface p-4 sm:p-5">
       <div
         className={clsx(
           "absolute -right-6 -top-6 h-24 w-24 rounded-full blur-3xl opacity-20",
           accent === "gold" ? "bg-gold" : "bg-teal",
         )}
       />
-      <div className="relative flex items-start justify-between">
-        <p className="font-mono text-[11px] uppercase tracking-widest text-lo">
+      <div className="relative flex items-start justify-between gap-2">
+        <p className="min-w-0 font-mono text-[10px] uppercase tracking-widest text-lo sm:text-[11px]">
           {label}
         </p>
         <Icon
           size={16}
           strokeWidth={1.75}
-          className={accent === "gold" ? "text-gold" : "text-teal"}
+          className={clsx(
+            "shrink-0",
+            accent === "gold" ? "text-gold" : "text-teal",
+          )}
         />
       </div>
-      <p className="relative mt-3 font-display text-[28px] font-medium leading-none text-hi">
+      <p className="relative mt-3 wrap-break-word font-display text-2xl font-medium leading-none text-hi sm:text-[28px]">
         {value}
       </p>
       {delta && (
-        <p
+      <p
           className={clsx("relative mt-2 font-mono text-[11px]", {
             "text-teal": deltaTone === "up",
             "text-danger": deltaTone === "down",

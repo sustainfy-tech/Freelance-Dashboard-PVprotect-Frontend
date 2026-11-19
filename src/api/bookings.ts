@@ -1,4 +1,4 @@
-import { apiRequest } from "./http";
+import { apiRequest } from "./http.js";
 import type {
   ApiBookingRequest,
   BookingRequestStatus,
@@ -12,7 +12,7 @@ export function listBookingRequestsForAdmin(status?: BookingRequestStatus) {
 }
 
 export function assignTechnician(
-  bookingId: string,
+  bookingId: string, 
   technicianId: string,
   technicianName: string,
 ) {

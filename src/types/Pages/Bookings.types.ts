@@ -86,3 +86,27 @@ export interface RawBookingListResponse {
   count?: number;
   nextToken?: string | null;
 }
+
+export interface Booking {
+  id: string;
+  plantId: string;
+  plantName: string;
+  clientName: string;
+  technician: string | null;
+  status: BookingStatus;
+  scheduledFor: string;
+  createdAt: string;
+  amount: number;
+  serviceType: "cleaning" | "inspection" | "repair";
+}
+
+export type BookingStatus =
+  | "requested"
+  | "assigned"
+  | "en_route"
+  | "in_progress"
+  | "completed"
+  | "payment_pending"
+  | "closed"
+  | "work_in_progress"
+  | "rejected";

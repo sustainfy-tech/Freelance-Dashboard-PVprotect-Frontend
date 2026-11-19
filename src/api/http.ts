@@ -5,6 +5,10 @@ export const API_BASE_URL = import.meta.env.VITE_APP_SERVER_BASE_URL?.replace(
   ""
 );
 
+const isNgrok = /ngrok/i.test(API_BASE_URL);
+
+console.log('API_BASE_URL',API_BASE_URL)
+
 if (!API_BASE_URL) {
   throw new Error(
     "VITE_APP_SERVER_BASE_URL is not configured. Check the deployment environment."
@@ -32,7 +36,28 @@ const client = axios.create({
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
+    ...(isNgrok ? { "ngrok-skip-browser-warning": "true" } : {}),
   },
+});
+
+client.interceptors.request.use((config) => {
+  try {
+    const raw = localStorage.getItem("pvprotect_admin");
+    if (raw) {
+      // pvprotect_admin may hold a plain token or a JSON object; handle both
+      let token = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        token = parsed?.token ?? parsed?.accessToken ?? raw;
+      } catch {
+        // not JSON, so it's already the token
+      }
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // localStorage unavailable: send the request without a token
+  }
+  return config;
 });
 
 interface ApiEnvelope<T> {
@@ -97,7 +122,7 @@ export async function apiRequest<T>(
     if (axios.isAxiosError(err)) {
       const axiosErr = err as AxiosError<unknown>;
       if (!axiosErr.response) {
-        throw new ApiError(`Network error calling ${url}`, 0, axiosErr);
+        throw new ApiError(`Network error calling `, 0, axiosErr);
       }
 
       const { status, data: parsed } = axiosErr.response;
@@ -109,7 +134,7 @@ export async function apiRequest<T>(
 
       const message = extractMessage(
         parsed,
-        `${method} ${url} failed with ${status}`
+        ` failed with ${status}`
       );
 
       throw new ApiError(message, status, parsed);
@@ -118,3 +143,4 @@ export async function apiRequest<T>(
     throw new ApiError(`${method} ${url} failed unexpectedly.`, 0, err);
   }
 }
+

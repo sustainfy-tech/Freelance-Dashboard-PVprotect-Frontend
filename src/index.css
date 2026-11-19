@@ -41,7 +41,11 @@
 ::-webkit-scrollbar-thumb { background: #232D37; border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
-html { color-scheme: dark; }
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 body { background-color: var(--color-bg); }
 
 ::selection {
@@ -49,14 +53,11 @@ body { background-color: var(--color-bg); }
   color: var(--color-gold);
 }
 
-/* Consistent focus ring across the app, gold-tinted rather than the browser default blue */
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 1px;
 }
 
-/* Shared form input style — used by the dynamic form builder / modal forms
-   (Services, TechnicianRequest, etc.) that reference className="input" */
 .input {
   width: 100%;
   background: var(--color-surface2);
@@ -75,9 +76,6 @@ body { background-color: var(--color-bg); }
   box-shadow: 0 0 0 3px var(--color-gold-soft);
 }
 
-/* Subtle elevation for cards/panels/tables/modals — the "premium" lift that
-   distinguishes floating surfaces from the flat background without
-   abandoning the hairline-border aesthetic. */
 @utility card-shadow {
   box-shadow:
     0 1px 0 0 rgba(255, 255, 255, 0.025) inset,
@@ -90,9 +88,6 @@ body { background-color: var(--color-bg); }
 }
 .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 
-/* Signature glow behind the sidebar mark / login mark — the Midnight Solar
-   "sunrise" motif. Wrap the mark in a relatively-positioned parent with
-   this class and overflow:visible. */
 .brand-glow { position: relative; }
 .brand-glow::after {
   content: "";
@@ -105,7 +100,6 @@ body { background-color: var(--color-bg); }
   pointer-events: none;
 }
 
-/* Gradient underline signature on the active sidebar item */
 .nav-active-underline {
   content: "";
   position: absolute;
@@ -114,4 +108,13 @@ body { background-color: var(--color-bg); }
   bottom: -1px;
   height: 2px;
   background: linear-gradient(90deg, var(--color-gold), transparent);
+}
+
+/* Phones: 16px form controls stop iOS Safari from zooming the page on focus */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }

@@ -323,10 +323,10 @@ export default function Technicians() {
         }
       />
 
-      <div className="mb-4 flex gap-2 border-b border-white/10">
+      <div className="mb-4 flex gap-2 overflow-x-auto border-b border-white/10">
         <button
           onClick={() => setTab("technicians")}
-          className={`px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
+          className={`whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-wide ${
             tab === "technicians"
               ? "border-b-2 border-gold text-hi"
               : "text-faint hover:text-lo"
@@ -336,7 +336,7 @@ export default function Technicians() {
         </button>
         <button
           onClick={() => setTab("requests")}
-          className={`px-3 py-2 font-mono text-[11px] uppercase tracking-wide ${
+          className={`whitespace-nowrap px-3 py-2.5 font-mono text-[11px] uppercase tracking-wide ${
             tab === "requests"
               ? "border-b-2 border-gold text-hi"
               : "text-faint hover:text-lo"

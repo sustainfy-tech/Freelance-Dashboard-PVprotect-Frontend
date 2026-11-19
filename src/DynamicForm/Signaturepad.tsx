@@ -19,7 +19,12 @@ export default function SignaturePad({
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const scaleX = e.currentTarget.width / rect.width;
+    const scaleY = e.currentTarget.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
   }
 
   function start(e: React.PointerEvent<HTMLCanvasElement>) {

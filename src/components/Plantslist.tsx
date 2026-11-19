@@ -24,7 +24,6 @@ import type {
   PlantPhotoWithUrl,
 } from "../types/Pages/Plant.types";
 
-// S3 bucket details used to resolve an s3key into a viewable image URL.
 const BUCKET_NAME = "mypvbucket1";
 const AWS_REGION = "ap-south-1";
 
@@ -97,8 +96,7 @@ function extractPlantItems(response: unknown): ApiPlant[] | null {
     (r.data as Record<string, unknown> | undefined)?.data,
     (
       (r.data as Record<string, unknown> | undefined)?.data as
-        | Record<string, unknown>
-        | undefined
+        Record<string, unknown> | undefined
     )?.items,
   ];
 
@@ -230,7 +228,7 @@ function PhotoLightbox({
                 <img
                   src={photo.url}
                   alt={photo.name ?? "Plant photo"}
-                  className="max-h-[70vh] max-w-full rounded-sm object-contain"
+                  className="max-h-[70dvh] max-w-full rounded-sm object-contain"
                   onError={() => setFailedIdx((prev) => new Set(prev).add(i))}
                 />
               ) : (
@@ -256,7 +254,7 @@ function PhotoLightbox({
 
 function SiteConditionsGrid({ conditions }: { conditions: ApiSiteConditions }) {
   const entries = Object.entries(conditions).filter(
-    ([, v]) => typeof v === "boolean"
+    ([, v]) => typeof v === "boolean",
   ) as [string, boolean][];
 
   if (entries.length === 0) return <span className="text-lo">—</span>;
@@ -319,13 +317,13 @@ export default function PlantsList({
       if (plantRows === null) {
         console.warn(
           "[PlantsList] Unrecognized plants response shape:",
-          response
+          response,
         );
       }
       setPlants(plantRows ?? []);
     } catch (err) {
       setPlantsError(
-        err instanceof Error ? err.message : "Failed to fetch plants"
+        err instanceof Error ? err.message : "Failed to fetch plants",
       );
       setPlants([]);
     } finally {
@@ -346,13 +344,13 @@ export default function PlantsList({
       (p) =>
         (p.plantName ?? "").toLowerCase().includes(q) ||
         formatAddress(p.address).toLowerCase().includes(q) ||
-        p.plantId.toLowerCase().includes(q)
+        p.plantId.toLowerCase().includes(q),
     );
   }, [query, plants]);
 
   const extraEntries = (plant: ApiPlant): [string, JsonValue][] =>
     Object.entries(plant).filter(
-      ([key, value]) => !KNOWN_PLANT_KEYS.has(key) && value !== undefined
+      ([key, value]) => !KNOWN_PLANT_KEYS.has(key) && value !== undefined,
     ) as [string, JsonValue][];
 
   return (
@@ -464,9 +462,9 @@ export default function PlantsList({
 
       {selectedPlant && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-5">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
+          <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-4 sm:p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0 wrap-break-word">
                 <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Plant details
                 </p>
@@ -490,7 +488,7 @@ export default function PlantsList({
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Address
                 </dt>
-                <dd className="text-right text-lo">
+                <dd className="min-w-0 wrap-break-word text-right text-lo">
                   {formatAddress(selectedPlant.address)}
                 </dd>
               </div>
@@ -498,7 +496,7 @@ export default function PlantsList({
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Capacity
                 </dt>
-                <dd className="text-right font-mono text-lo">
+                <dd className="min-w-0 wrap-break-word text-right font-mono text-lo">
                   {selectedPlant.capacityKw
                     ? `${selectedPlant.capacityKw} kW`
                     : "—"}
@@ -516,7 +514,7 @@ export default function PlantsList({
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Installed
                 </dt>
-                <dd className="text-right font-mono text-lo">
+                <dd className="min-w-0 wrap-break-word text-right font-mono text-lo">
                   {formatDate(selectedPlant.installDate)}
                 </dd>
               </div>
@@ -524,9 +522,9 @@ export default function PlantsList({
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   No of modules
                 </dt>
-                <dd className="text-right font-mono text-lo">
+                <dd className="min-w-0 wrap-break-word text-right font-mono text-lo">
                   {formatValue(
-                    selectedPlant.noOfModules as JsonValue | undefined
+                    selectedPlant.noOfModules as JsonValue | undefined,
                   )}
                 </dd>
               </div>
@@ -534,7 +532,7 @@ export default function PlantsList({
                 <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Last service
                 </dt>
-                <dd className="text-right font-mono text-lo">
+                <dd className="min-w-0 wrap-break-word text-right font-mono text-lo">
                   {formatDate(selectedPlant.lastServiceDate)}
                 </dd>
               </div>
@@ -584,7 +582,9 @@ export default function PlantsList({
                   <dt className="font-mono text-[11px] uppercase tracking-wide text-faint">
                     {formatLabel(key)}
                   </dt>
-                  <dd className="text-right text-lo">{formatValue(value)}</dd>
+                  <dd className="min-w-0 wrap-break-word text-right text-lo">
+                    {formatValue(value)}
+                  </dd>
                 </div>
               ))}
             </dl>

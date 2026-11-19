@@ -127,13 +127,13 @@ export default function Bookings() {
     setPage(1);
   }
   const [assignTarget, setAssignTarget] = useState<ApiBookingRequest | null>(
-    null
+    null,
   );
   const [detailsTarget, setDetailsTarget] = useState<ApiBookingRequest | null>(
-    null
+    null,
   );
   const [visitTarget, setVisitTarget] = useState<ApiBookingRequest | null>(
-    null
+    null,
   );
   const [visitMode, setVisitMode] = useState<"visit" | "reason">("visit");
   const [selectedTechnician, setSelectedTechnician] = useState("");
@@ -142,7 +142,7 @@ export default function Bookings() {
 
   const { data, loading, error, refetch } = useApiData(
     () => listBookingRequestsForAdmin(status === "all" ? undefined : status),
-    [status]
+    [status],
   );
 
   const {
@@ -164,7 +164,9 @@ export default function Bookings() {
 
   const rows = useMemo(() => {
     const raw = data as RawBookingListResponse | RawBookingItem[] | null;
-    const items: RawBookingItem[] = Array.isArray(raw) ? raw : raw?.items ?? [];
+    const items: RawBookingItem[] = Array.isArray(raw)
+      ? raw
+      : (raw?.items ?? []);
     return items.map(normalizeBooking);
   }, [data]);
 
@@ -174,7 +176,7 @@ export default function Bookings() {
     return rows.filter((b) =>
       [b.bookingId, b.plantName, b.plantAddress, b.serviceType, b.plantId]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
+        .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [rows, query]);
 
@@ -210,7 +212,7 @@ export default function Bookings() {
 
     if (!technicianName) {
       setAssignError(
-        "Could not resolve the selected technician's name. Try reselecting them."
+        "Could not resolve the selected technician's name. Try reselecting them.",
       );
       return;
     }
@@ -221,13 +223,13 @@ export default function Bookings() {
       await assignTechnician(
         assignTarget.bookingId,
         selectedTechnician,
-        technicianName
+        technicianName,
       );
       setAssignTarget(null);
       refetch();
     } catch (err) {
       setAssignError(
-        err instanceof Error ? err.message : "Could not assign technician."
+        err instanceof Error ? err.message : "Could not assign technician.",
       );
     } finally {
       setAssigning(false);
@@ -393,7 +395,7 @@ export default function Bookings() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="flex items-center gap-1 rounded-sm border border-surface3 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
+                  className="flex items-center gap-1 rounded-sm border border-surface3 px-3 py-2 sm:px-2.5 sm:py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
                 >
                   <ChevronLeft size={13} /> Prev
                 </button>
@@ -403,7 +405,7 @@ export default function Bookings() {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="flex items-center gap-1 rounded-sm border border-surface3 px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
+                  className="flex items-center gap-1 rounded-sm border border-surface3 px-3 py-2 sm:px-2.5 sm:py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-opacity hover:bg-surface3 disabled:opacity-40"
                 >
                   Next <ChevronRight size={13} />
                 </button>
@@ -464,7 +466,7 @@ export default function Bookings() {
           {assignError && (
             <p className="mb-3 text-[12px] text-danger">{assignError}</p>
           )}
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <button
               onClick={() => setAssignTarget(null)}
               className="rounded-sm border border-border px-3.5 py-2 font-mono text-[11px] uppercase tracking-wide text-lo hover:text-hi"
@@ -558,9 +560,7 @@ export default function Bookings() {
                 }`
           }
           onClose={() => setVisitTarget(null)}
-          widthClassName={
-            visitMode === "visit" ? "w-[75vw] max-w-[75vw]" : undefined
-          }
+          widthClassName={visitMode === "visit" ? "max-w-6xl" : undefined}
         >
           {visitMode === "visit" ? (
             <VisitDataView
@@ -611,15 +611,15 @@ function VisitDataView({
   const entries = Object.entries(visitData ?? {});
 
   const fileEntries = entries.filter(
-    (entry): entry is [string, VisitFileValue] => isVisitFile(entry[1])
+    (entry): entry is [string, VisitFileValue] => isVisitFile(entry[1]),
   );
   const plainEntries = entries.filter((entry) => !isVisitFile(entry[1]));
 
   const imageEntries = fileEntries.filter(([, file]) =>
-    file.type?.startsWith("image/")
+    file.type?.startsWith("image/"),
   );
   const docEntries = fileEntries.filter(
-    ([, file]) => !file.type?.startsWith("image/")
+    ([, file]) => !file.type?.startsWith("image/"),
   );
 
   const hasVisitData = entries.length > 0;
@@ -633,13 +633,15 @@ function VisitDataView({
             <dt className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
               Technician
             </dt>
-            <dd className="text-right text-hi">{technicianName ?? "—"}</dd>
+            <dd className="min-w-0 wrap-break-word text-right text-hi">
+              {technicianName ?? "—"}
+            </dd>
           </div>
           <div className="flex items-center justify-between gap-4 border-b border-border pb-2">
             <dt className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
               Technician ID
             </dt>
-            <dd className="text-right font-mono text-[12px] text-hi">
+            <dd className="min-w-0 break-all text-right font-mono text-[12px] text-hi">
               {technicianId ?? "—"}
             </dd>
           </div>
@@ -648,7 +650,7 @@ function VisitDataView({
               <dt className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
                 Accepted at
               </dt>
-              <dd className="text-right text-hi">
+              <dd className="min-w-0 wrap-break-word text-right text-hi">
                 {action.updatedAt ? formatDateTime(action.updatedAt) : "—"}
               </dd>
             </div>
@@ -661,7 +663,9 @@ function VisitDataView({
               <dt className="font-mono text-[10.5px] uppercase tracking-widest text-faint">
                 {label}
               </dt>
-              <dd className="text-right text-hi">{String(value)}</dd>
+              <dd className="min-w-0 wrap-break-word text-right text-hi">
+                {String(value)}
+              </dd>
             </div>
           ))}
         </dl>
@@ -788,7 +792,7 @@ function DetailRow({
         {label}
       </dt>
       <dd
-        className={`text-right text-hi ${mono ? "font-mono text-[12px]" : ""}`}
+        className={`min-w-0 wrap-break-word text-right text-hi ${mono ? "font-mono text-[12px]" : ""}`}
       >
         {value === undefined || value === null || value === "" ? "—" : value}
       </dd>
