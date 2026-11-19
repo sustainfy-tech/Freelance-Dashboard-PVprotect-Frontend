@@ -39,7 +39,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen bg-bg">
+    <div className="flex min-h-dvh bg-bg">
       <style>{`
         @keyframes fadeSlideIn {
           from { opacity: 0; transform: translateY(12px); }
@@ -93,7 +93,7 @@ export default function Login() {
       </div>
 
       {/* Right login panel */}
-      <div className="flex w-full flex-col items-center justify-center bg-bg px-6 lg:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center bg-bg px-4 py-10 sm:px-6 lg:w-1/2">
         <div className="login-card w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center gap-3 lg:hidden">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-surface3 bg-surface2">

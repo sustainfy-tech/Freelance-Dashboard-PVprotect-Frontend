@@ -4,19 +4,10 @@ import type {
   ApprovalStatus,
 } from "../types/Pages/Technicians.types";
 import type { ApiPlant } from "../types/Pages/Plant.types";
+import type { TechnicianPage } from "../types/Pages/Technicians.types";
 
-interface TechnicianPage {
-  items: ApiTechnician[];
-  count?: number;
-  nextToken?: string | null;
-}
 
-/**
- * Fetches technicians by role only (the backend index has no `status` sort key,
- * so sending `status` causes a DynamoDB ValidationException) and filters by
- * status here. Follows nextToken so later pages are not missed.
- * Handles both a plain array response and a { items, nextToken } page.
- */
+
 async function fetchTechniciansByStatus(
   status: ApprovalStatus | string
 ): Promise<ApiTechnician[]> {
@@ -25,7 +16,7 @@ async function fetchTechniciansByStatus(
 
   do {
     const res = await apiRequest<TechnicianPage | ApiTechnician[]>(
-      "/api/v1/admin/app-users/all",
+      "/api/v1/admin/app-users/all-technicians",
       { query: { role: "technician", limit: 100, lastKey } }
     );
 
@@ -39,7 +30,7 @@ async function fetchTechniciansByStatus(
 }
 
 export function listTechniciansForAdmin() {
-  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?role=client");
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all-clients?role=client");
 }
 
 export function listAprovedTechnicians() {
@@ -47,7 +38,7 @@ export function listAprovedTechnicians() {
 }
 
 export function listAllTechnicians() {
-  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all?role=technician");
+  return apiRequest<ApiTechnician[]>("/api/v1/admin/app-users/all-technicians?role=technician");
 }
 
 export function listTechnicianRequests() {

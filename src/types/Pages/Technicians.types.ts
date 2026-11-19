@@ -67,4 +67,27 @@ export type TechniciansResponse =
 
 export type TechnicianRecord = ApiTechnician & Record<string, unknown>;
 
+export interface Technician {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: TechnicianStatus;
+  zone: string;
+  rating: number;
+  jobsCompleted: number;
+  activeSince: string;
+}
 
+
+export type TechnicianStatus =
+  | "available"
+  | "on_job"
+  | "off_duty"
+  | "suspended";
+
+export interface TechnicianPage {
+  items: ApiTechnician[];
+  count?: number;
+  nextToken?: string | null;
+}

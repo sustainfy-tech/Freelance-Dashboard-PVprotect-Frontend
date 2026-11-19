@@ -98,3 +98,17 @@ export interface PlantPhotoWithUrl {
   type?: string;
   size?: number;
 }
+
+export interface Plant {
+  id: string;
+  name: string;
+  clientId: string;
+  clientName: string;
+  capacityKw: number;
+  panels: number;
+  address: string;
+  lastServiced: string;
+  nextDue: string;
+  healthScore: number;
+
+}

@@ -4,7 +4,10 @@ import SectionHeader from "../components/SectionHeader";
 import DataTable, { type Column } from "../components/DataTable";
 import { ToolbarSearch } from "../components/Toolbar";
 import { listTechniciansForAdmin } from "../api/technicians.js";
-import type { ApiAppUser, TechniciansApiResponse } from "../types/Pages/Client.types.js";
+import type {
+  ApiAppUser,
+  TechniciansApiResponse,
+} from "../types/Pages/Client.types.js";
 import type { ClientRow } from "../types/Pages/Client.types.js";
 import PlantsList from "../components/Plantslist.js";
 
@@ -24,16 +27,22 @@ function formatDate(d?: string | null) {
   });
 }
 
-
 async function loadClientRows(): Promise<ClientRow[]> {
-  const response = (await listTechniciansForAdmin()) as unknown as TechniciansApiResponse;
+  const response =
+    (await listTechniciansForAdmin()) as unknown as TechniciansApiResponse;
 
   const users: ApiAppUser[] = Array.isArray(response)
     ? response
-    : ((response as { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } })?.data
-        ?.items ??
-      (response as { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } })?.data
-        ?.technicians ??
+    : ((
+        response as {
+          data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] };
+        }
+      )?.data?.items ??
+      (
+        response as {
+          data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] };
+        }
+      )?.data?.technicians ??
       (response as { items?: ApiAppUser[] })?.items ??
       (response as { technicians?: ApiAppUser[] })?.technicians ??
       []);
@@ -209,9 +218,9 @@ export default function Clients() {
 
       {plantsModalClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-5">
-            <div className="mb-4 flex items-start justify-between">
-              <div>
+          <div className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto rounded-sm border border-white/10 bg-bg p-4 sm:p-5">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0 wrap-break-word">
                 <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
                   Plants
                 </p>
@@ -222,7 +231,7 @@ export default function Clients() {
               </div>
               <button
                 onClick={closePlantsModal}
-                className="text-faint hover:text-hi"
+                className="shrink-0 p-1 text-faint hover:text-hi"
               >
                 <X size={18} />
               </button>

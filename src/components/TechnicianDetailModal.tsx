@@ -50,7 +50,7 @@ export default function TechnicianDetailModal({
   const techName = s(tech.user_name ?? tech.name, "Technician");
 
   const infoEntries = Object.entries(tech).filter(
-    ([key]) => !HIDDEN_KEYS.has(key)
+    ([key]) => !HIDDEN_KEYS.has(key),
   );
   const documents = normalizeDocuments(tech.documents);
 
@@ -63,7 +63,7 @@ export default function TechnicianDetailModal({
       onClose();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to approve technician"
+        err instanceof Error ? err.message : "Failed to approve technician",
       );
     } finally {
       setApproving(false);
@@ -73,18 +73,18 @@ export default function TechnicianDetailModal({
   const BUCKET_NAME = "mypvbucket1";
   return (
     <Modal title={techName} onClose={onClose}>
-      <div className="max-h-[70vh] space-y-6 overflow-y-auto">
+      <div className="space-y-6">
         <div>
           <h3 className="mb-2 font-mono text-[11px] uppercase tracking-wide text-faint">
             Technician info
           </h3>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
             {infoEntries.map(([key, value]) => (
               <div key={key} className="min-w-0">
                 <dt className="font-mono text-[10px] uppercase tracking-wide text-faint">
                   {formatLabel(key)}
                 </dt>
-                <dd className="truncate text-sm text-lo">
+                <dd className="wrap-break-word text-sm text-lo">
                   {formatValue(value)}
                 </dd>
               </div>
@@ -108,10 +108,10 @@ export default function TechnicianDetailModal({
                 return (
                   <li
                     key={doc?.id ?? doc?.s3Key ?? idx}
-                    className="flex items-center justify-between border border-border px-3 py-2"
+                    className="flex items-center justify-between gap-3 border border-border px-3 py-2"
                   >
-                    <span className="flex items-center gap-2 text-sm text-lo">
-                      <FileText size={14} className="text-faint" />
+                    <span className="flex min-w-0 items-center gap-2 wrap-break-word text-sm text-lo">
+                      <FileText size={14} className="shrink-0 text-faint" />
                       {doc?.name ?? doc?.type ?? doc?.filename ?? "Document"}
                     </span>
 
@@ -120,7 +120,7 @@ export default function TechnicianDetailModal({
                         url && window.open(url, "_blank", "noopener,noreferrer")
                       }
                       disabled={!url}
-                      className="border border-border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wide text-lo transition-colors hover:border-gold hover:text-gold disabled:opacity-40"
+                      className="shrink-0 border border-border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wide text-lo transition-colors hover:border-gold hover:text-gold disabled:opacity-40"
                     >
                       View doc
                     </button>

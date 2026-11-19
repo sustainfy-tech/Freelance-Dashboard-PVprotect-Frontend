@@ -7,7 +7,7 @@ export default function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg">
+      <div className="flex h-dvh items-center justify-center bg-bg">
         <p className="font-mono text-[12px] text-faint">Checking session…</p>
       </div>
     );

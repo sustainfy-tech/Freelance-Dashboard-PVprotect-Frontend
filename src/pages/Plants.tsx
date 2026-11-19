@@ -109,7 +109,7 @@ export default function Plants() {
         p.plantId?.toLowerCase().includes(q),
     );
   }, [plants, query]);
-  console.log('plants',plants)
+  console.log("plants", plants);
 
   const columns: Column<ApiPlant>[] = [
     {
@@ -286,7 +286,7 @@ function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-md border border-surface3 bg-surface2 p-5"
+        className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-md border border-surface3 bg-surface2 p-4 sm:p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">
@@ -314,7 +314,7 @@ function PlantDetailModal({ plant, onClose }: PlantDetailModalProps) {
               <span className="font-mono text-[11px] uppercase tracking-wide text-faint">
                 {r.label}
               </span>
-              <span className="text-right font-mono text-[12px] text-lo">
+              <span className="min-w-0 wrap-break-word text-right font-mono text-[12px] text-lo">
                 {r.value}
               </span>
             </div>
@@ -428,10 +428,10 @@ function PlantMapModal({ plant, onClose }: PlantMapModalProps) {
   }, [plant]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-md border border-surface3 bg-surface2">
-        <div className="flex items-start justify-between border-b border-surface3 px-5 py-4">
-          <div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4">
+      <div className="flex h-[92dvh] w-full sm:h-[85dvh] max-w-3xl flex-col overflow-hidden rounded-md border border-surface3 bg-surface2">
+        <div className="flex items-start justify-between gap-3 border-b border-surface3 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="min-w-0 wrap-break-word">
             <p className="font-mono text-[11px] uppercase tracking-wide text-faint">
               Plant location
             </p>
@@ -459,8 +459,8 @@ function PlantMapModal({ plant, onClose }: PlantMapModalProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-surface3 px-5 py-3">
-          <div className="flex gap-6 font-mono text-[11px] text-faint">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-surface3 px-4 py-3 sm:px-5">
+          <div className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-[11px] text-faint">
             <span>
               <span className="text-lo">Capacity:</span>{" "}
               {plant.capacityKw.toLocaleString("en-IN")} kW

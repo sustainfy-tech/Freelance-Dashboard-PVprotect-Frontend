@@ -63,3 +63,19 @@ export type TechniciansApiResponse =
   | { technicians?: ApiAppUser[] }
   | { items?: ApiAppUser[] }
   | { data?: { items?: ApiAppUser[]; technicians?: ApiAppUser[] } };
+
+  export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  tier: ClientTier;
+  plants: number;
+  joined: string;
+  status: "active" | "inactive";
+  lifetimeValue: number;
+}
+
+export type ClientTier = "residential" | "commercial" | "utility";
+
+

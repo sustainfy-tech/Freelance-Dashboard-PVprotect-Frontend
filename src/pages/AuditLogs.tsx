@@ -2,8 +2,18 @@ import { useMemo, useState } from "react";
 import SectionHeader from "../components/SectionHeader";
 import { ToolbarSearch, FilterChip } from "../components/Toolbar";
 import { auditLogs } from "../data/mockData";
-import type { AuditLogEntry } from "../types/types";
 import clsx from "clsx";
+
+export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  actorRole: "client" | "technician" | "admin" | "system" | any;
+  action: string;
+  target: string;
+  timestamp: string;
+  correlationId: string;
+  
+}
 
 const roles: { label: string; value: AuditLogEntry["actorRole"] | "all" }[] = [
   { label: "All actors", value: "all" },
@@ -69,28 +79,28 @@ export default function AuditLogs() {
           <div
             key={log.id}
             className={clsx(
-              "grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3.5",
+              "grid grid-cols-[auto_1fr] items-start gap-x-3 gap-y-1 px-4 py-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4 sm:px-5 sm:py-3.5",
               i !== filtered.length - 1 && "border-b border-border",
             )}
           >
             <span
               className={clsx(
-                "h-1.5 w-1.5 shrink-0 rounded-full",
+                "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full sm:mt-0",
                 roleDot[log.actorRole],
               )}
             />
             <div className="min-w-0">
-              <p className="truncate text-[13px] text-hi">
+              <p className="wrap-break-word text-[13px] text-hi sm:truncate">
                 <span className="font-mono text-gold">
                   {log.action.replaceAll("_", " ")}
                 </span>
                 <span className="text-faint"> — {log.target}</span>
               </p>
-              <p className="font-mono text-[11px] text-faint">
+              <p className="break-all font-mono text-[11px] text-faint sm:break-normal">
                 {log.actor} · corr: {log.correlationId}
               </p>
             </div>
-            <span className="font-mono text-[11px] text-lo">
+            <span className="col-start-2 font-mono text-[11px] text-lo sm:col-start-auto">
               {new Date(log.timestamp).toLocaleString("en-IN", {
                 day: "2-digit",
                 month: "short",

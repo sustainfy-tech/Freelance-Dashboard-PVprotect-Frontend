@@ -11,7 +11,7 @@ export function ToolbarSearch({
   placeholder: string;
 }) {
   return (
-    <div className="relative w-full max-w-xs">
+    <div className="relative w-full sm:max-w-xs">
       <Search
         size={14}
         strokeWidth={1.75}
@@ -40,7 +40,7 @@ export function FilterChip({
     <button
       onClick={onClick}
       className={clsx(
-        "whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wide transition-colors",
+        "shrink-0 whitespace-nowrap rounded-full border px-3 py-2 font-mono text-[11px] uppercase tracking-wide transition-colors sm:py-1.5",
         active
           ? "border-gold-dim bg-gold-soft text-gold"
           : "border-border bg-surface2 text-lo hover:text-hi",

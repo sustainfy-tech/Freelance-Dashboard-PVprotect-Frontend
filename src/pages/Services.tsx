@@ -203,7 +203,7 @@ export default function Services() {
       accessor: (s) => (
         <button
           onClick={() => setEditServiceId(s.serviceId)}
-          className="text-faint hover:text-hi"
+          className="p-1.5 text-faint hover:text-hi"
           aria-label="Edit service"
         >
           <Pencil size={14} />
@@ -216,7 +216,7 @@ export default function Services() {
       accessor: (s) => (
         <button
           onClick={() => handleDelete(s)}
-          className="text-faint hover:text-danger"
+          className="p-1.5 text-faint hover:text-danger"
           aria-label="Delete service"
         >
           <Trash2 size={14} />
@@ -232,7 +232,7 @@ export default function Services() {
         title="Services"
         description="The service catalog clients book against — availability and slot management, wired to the Services API."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={refetch}
               disabled={loading}
@@ -393,7 +393,7 @@ function CreateServiceModal({
   return (
     <Modal title="New service " onClose={onClose}>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Title">
             <input
               value={title}
@@ -411,7 +411,7 @@ function CreateServiceModal({
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Price (₹)">
             <input
               value={price}
@@ -568,7 +568,7 @@ function EditServiceModal({
   return (
     <Modal title={`Edit ${service.title}`} onClose={onClose}>
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Title">
             <input
               value={title}
@@ -586,7 +586,7 @@ function EditServiceModal({
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Price (₹)">
             <input
               value={price}
@@ -853,7 +853,7 @@ function ServiceFormModal({
       onClose={onClose}
       widthClassName="max-w-3xl"
     >
-      <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+      <div className="space-y-4">
         <Field label="Form title">
           <input
             value={title}
@@ -867,22 +867,19 @@ function ServiceFormModal({
           <span className="mb-1.5 block font-mono text-[11px] uppercase tracking-wide text-faint">
             Fields
           </span>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {fields.map((f, i) => (
               <div
                 key={f._key}
                 className="space-y-2 border border-border bg-surface2 p-3"
               >
-                <div
-                  className="grid items-start gap-2"
-                  style={{ gridTemplateColumns: "1fr 112px 20px" }}
-                >
+                <div className="grid grid-cols-[1fr_auto] items-start gap-2 sm:grid-cols-[1fr_112px_20px]">
                   <input
                     value={f.label}
                     onChange={(e) =>
                       updateField(f._key, { label: e.target.value })
                     }
-                    className="input w-full"
+                    className="input col-span-2 w-full sm:col-span-1"
                     placeholder={`Field ${i + 1} label`}
                   />
                   <select
@@ -1244,7 +1241,7 @@ function ServiceDetail({
 
   return (
     <Modal title={service.title} onClose={onClose}>
-      <div className="max-h-[70vh] space-y-6 overflow-y-auto">
+      <div className="space-y-6">
         <section>
           <p className="mb-2 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-faint">
             <Calendar size={12} /> Unavailable dates

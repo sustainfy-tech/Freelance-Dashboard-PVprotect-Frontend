@@ -17,29 +17,32 @@ export default function Modal({
 }: ModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         className={clsx(
-          "w-full border border-border bg-surface1 p-5",
+          "flex max-h-[92dvh] w-full flex-col rounded-t-md border border-border bg-surface sm:max-h-[90dvh] sm:rounded-sm",
           widthClassName,
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-mono text-sm uppercase tracking-wide text-hi">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+          <h2 className="min-w-0 truncate font-mono text-sm uppercase tracking-wide text-hi">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-faint hover:text-hi"
+            className="-mr-2 shrink-0 rounded-sm p-2 text-faint hover:text-hi"
             aria-label="Close"
           >
             <X size={16} />
           </button>
         </div>
-        {children}
+        {/* The modal body is the single scroll area */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          {children}
+        </div>
       </div>
     </div>
   );
